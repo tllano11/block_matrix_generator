@@ -50,11 +50,15 @@ int main (int argc, char** argv) {
   int rows_per_proc = floor(total_rows / num_procs);
 
 #ifdef DEBUG
-  cout << "Total RAM to use = " << mem_to_use << endl;
-  cout << "Single row size in RAM = " << row_size << endl;
-  cout << "Rows to produce per iteration = " << total_rows << endl;
-  cout << "Rows to produce per processor = " << rows_per_proc << endl;
-#endif
+  if (rank == 0) {
+    cout << string(50, '*') << endl;
+    cout << "Total RAM to use = " << mem_to_use << endl;
+    cout << "Single row size in RAM = " << row_size << endl;
+    cout << "Rows to produce per iteration = " << total_rows << endl;
+    cout << "Rows to produce per processor = " << rows_per_proc << endl;
+    cout << string(50, '*') << endl;
+  }
+#endif // DEBUG
 
   if (matrix_size < rows_per_proc) {
     cerr << "This program is intendend to produce large matrices, "
@@ -76,6 +80,19 @@ int main (int argc, char** argv) {
   //long double* data = new long double[rows_per_proc * matrix_size];
   //delete data;
 
+  int initial_it_row = rank * rows_per_proc;
+  while (initial_it_row < matrix_size) {
+#ifdef DEBUG
+      cout << string(50, '*') << endl;
+      cout << "First row for processor " << rank
+	   << " = " << initial_it_row << endl;
+      cout << "Final row for processor " << rank
+	   << " = " << initial_it_row + rows_per_proc - 1 << endl;
+      cout << string(50, '*') << endl;
+#endif //DEBUG
+
+      initial_it_row += total_rows;
+  }
 
   MPI_Finalize();
   return SUCCESS;
