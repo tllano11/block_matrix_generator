@@ -14,7 +14,6 @@ using namespace std;
 
 int main (int argc, char** argv) {
   int opt, num_procs, rank;
-  int* arguments;
   struct sysinfo mem_info;
   long matrix_size;
   double mem_percentage;
