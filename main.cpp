@@ -134,8 +134,14 @@ int main (int argc, char** argv) {
   long final_it_row;
   long data_size = rows_per_proc * matrix_size;
   long double* data = new long double[data_size];
+  my_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
+
+  MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &mpi_file);
 
   while (initial_it_row < matrix_size) {
+    MPI_File_seek(mpi_file, my_offset, MPI_SEEK_SET);
+    MPI_File_get_position(mpi_file, &my_current_offset);
+
     final_it_row = initial_it_row + rows_per_proc - 1;
     if (final_it_row > matrix_size) {
       delete data;
@@ -144,11 +150,13 @@ int main (int argc, char** argv) {
       data = new long double[data_size];
     }
     fill_with_random(data, data_size);
+    MPI_File_write(mpi_file, data, data_size, MPI_LONG_DOUBLE, &status);
     cout << "Rank " << rank << " produced matrix: " << endl;
-    print_data(data, data_size);
+    //print_data(data, data_size);
     initial_it_row += total_rows;
+    my_offset += (long long)total_rows * (long long)sizeof(long double);
   }
-
+  MPI_File_close(&mpi_file);
   MPI_Finalize();
   return SUCCESS;
 }
