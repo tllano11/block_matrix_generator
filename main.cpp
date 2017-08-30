@@ -8,6 +8,7 @@
 #include<mpi.h>
 #include<math.h>
 #include<sys/sysinfo.h>
+#include<cstring>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -36,17 +37,21 @@ void print_data(long double* data, long data_size) {
 }
 
 int main (int argc, char** argv) {
-  int opt, num_procs, rank, total_rows, rows_per_proc;
+  int opt, num_procs, rank, total_rows, rows_per_proc, filename_length;
   struct sysinfo mem_info;
   long matrix_size, row_size;
   double mem_percentage;
+  MPI_Offset my_offset, my_current_offset;
+  MPI_File mpi_file;
+  MPI_Status status;
+  char* filename;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   if (rank == MASTER) {
-    while ((opt = getopt(argc, argv, "p:s:h")) != EOF) {
+    while ((opt = getopt(argc, argv, "p:s:f:h")) != EOF) {
       switch (opt) {
       case 'p':
 	mem_percentage = stof(optarg);
@@ -54,6 +59,9 @@ int main (int argc, char** argv) {
       case 's':
 	matrix_size = stol(optarg);
 	break;
+      case 'f':
+        filename = optarg;
+        break;
       case 'h':
 	cout << "\n\nUsage:\n"
 	     << "\r\t-p <Percentage of RAM to use>\n"
@@ -67,6 +75,7 @@ int main (int argc, char** argv) {
       }
     }
 
+    filename_length = strlen(filename) + 1;
     sysinfo(&mem_info);
     double mem_to_use = mem_info.freeram * mem_percentage;
     row_size = matrix_size * sizeof(long double);
@@ -87,7 +96,7 @@ int main (int argc, char** argv) {
 	   << "which can not be loaded into RAM without swapping. "
 	   << "Therefore a matrix of size " << matrix_size
 	   << " is not suitable to produce given your system "
-	   << "resources.";
+	   << "resources." << endl;
       MPI_Abort(MPI_COMM_WORLD, ERROR);
 
     } else if (rows_per_proc < 1) {
@@ -97,11 +106,16 @@ int main (int argc, char** argv) {
       MPI_Abort(MPI_COMM_WORLD, ERROR);
     }
   }
-
   MPI_Bcast(&row_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&matrix_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&total_rows, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&rows_per_proc, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+  MPI_Bcast(&filename_length, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+  if (rank != 0 ){
+    filename = new char[filename_length];
+  }
+  MPI_Bcast(filename, filename_length, MPI_CHAR, MASTER, MPI_COMM_WORLD);
+
 
 #ifdef DEBUG
   cout << "Rank " << rank << " received row_size = "
@@ -112,6 +126,8 @@ int main (int argc, char** argv) {
        << rows_per_proc << endl;
   cout << "Rank " << rank << " received matrix_size = "
        << matrix_size << endl;
+  cout << "Rank " << rank << " Filename = "
+       << filename << endl;
 #endif //DEBUG
 
   long initial_it_row = rank * rows_per_proc;
