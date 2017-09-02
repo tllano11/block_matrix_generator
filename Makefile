@@ -11,7 +11,7 @@ debug: all
 $(TARGET): $(TARGET).o
 	$(CXX) $(CXXFLAGS) -o $(TARGET) $(TARGET).o
 
-$(TARGET).o:
+$(TARGET).o: $(TARGET).cpp
 	$(CXX) $(CXXFLAGS) -c $(TARGET).cpp
 
 clean:

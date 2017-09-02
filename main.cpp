@@ -142,6 +142,11 @@ int main (int argc, char** argv) {
     MPI_File_seek(mpi_file, my_offset, MPI_SEEK_SET);
     MPI_File_get_position(mpi_file, &my_current_offset);
 
+#ifdef DEBUG
+    cout << "Rank: " << rank << " My Current Offset: " << my_current_offset << endl;
+    //cout << "Rank: " << rank << " My inital row: " << initial_it_row << endl;
+#endif //DEBUG
+
     final_it_row = initial_it_row + rows_per_proc - 1;
     if (final_it_row > matrix_size) {
       delete data;
@@ -149,12 +154,20 @@ int main (int argc, char** argv) {
       data_size = matrix_size * (final_it_row - initial_it_row);
       data = new long double[data_size];
     }
+    cout << "Rank: " << rank << " Generating Random Nums" << endl;
     fill_with_random(data, data_size);
+    cout << "Rank: " << rank << " Before Write" << endl;
     MPI_File_write(mpi_file, data, data_size, MPI_LONG_DOUBLE, &status);
-    cout << "Rank " << rank << " produced matrix: " << endl;
+
+#ifdef DEBUG
+    MPI_File_get_position(mpi_file, &my_current_offset);
+    cout << "Rank: " << rank << " My Final Offset: " << my_current_offset << endl;
+#endif //DEBUG
+
+    cout << "Rank: " << rank << " After Write" << endl;
     //print_data(data, data_size);
     initial_it_row += total_rows;
-    my_offset += (long long)total_rows * (long long)sizeof(long double);
+    my_offset += (long long)total_rows * (long long)sizeof(long double) * (long long)matrix_size;
   }
   MPI_File_close(&mpi_file);
   MPI_Finalize();
