@@ -6,7 +6,7 @@
 #include<stdlib.h>
 #include<getopt.h>
 #include<mpi.h>
-#include<math.h>
+#include<cmath>
 #include<sys/sysinfo.h>
 #include<cstring>
 
@@ -16,16 +16,23 @@
 
 using namespace std;
 
-void fill_with_random(long double* data, long data_size) {
+void fill_with_random(long double* data, long rows_per_proc, long matrix_size, long inital_row) {
   random_device rd;
   mt19937_64 mt(rd());
 
   long double min = numeric_limits<long double>::min();
   long double max = numeric_limits<long double>::max();
   uniform_real_distribution<long double> urd(min, max);
+  long double accum;
 
-  for (long i = 0; i < data_size; ++i) {
-    data[i] = urd(mt);
+  for (long i = 0; i < rows_per_proc; ++i) {
+    accum = 0;
+    for (long j = 0; j < matrix_size; ++j) {
+      data[i * matrix_size + j] = urd(mt);
+      accum += abs(data[i * matrix_size + j]);
+    }
+    data[i * matrix_size + inital_row] = accum + 1;
+    inital_row++;
   }
 }
 
@@ -153,11 +160,12 @@ int main (int argc, char** argv) {
     if (final_it_row > matrix_size) {
       delete data;
       final_it_row = matrix_size;
-      data_size = matrix_size * (final_it_row - initial_it_row);
+      rows_per_proc = final_it_row - initial_it_row;
+      data_size = matrix_size * rows_per_proc;
       data = new long double[data_size];
     }
     cout << "Rank: " << rank << " Generating Random Nums" << endl;
-    fill_with_random(data, data_size);
+    fill_with_random(data, rows_per_proc, matrix_size, initial_it_row);
     cout << "Rank: " << rank << " Before Write" << endl;
     MPI_File_write(mpi_file, data, data_size, MPI_LONG_DOUBLE, &status);
 
