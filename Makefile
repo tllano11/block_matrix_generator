@@ -1,7 +1,7 @@
 CXX = mpicxx
 CXXFLAGS = -std=c++11 -Wall
 DEBUG = -g -D DEBUG
-TARGET = main
+TARGET = matrix_generator
 
 all: $(TARGET)
 
