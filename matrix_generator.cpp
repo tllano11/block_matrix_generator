@@ -20,9 +20,7 @@ void fill_with_random(long double* data, long rows_per_proc, long matrix_size, l
   random_device rd;
   mt19937_64 mt(rd());
 
-  long double min = numeric_limits<long double>::min();
-  long double max = numeric_limits<long double>::max();
-  uniform_real_distribution<long double> urd(min, max);
+  uniform_real_distribution<long double> urd(-matrix_size, matrix_size);
   long double accum;
 
   for (long i = 0; i < rows_per_proc; ++i) {
@@ -57,7 +55,13 @@ int main (int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+  //TODO Check arguments parser
   if (rank == MASTER) {
+    if (argc < 2){
+      cerr << "Not enough arguments" << endl;
+      exit(0);
+    }
+
     while ((opt = getopt(argc, argv, "p:s:f:h")) != EOF) {
       switch (opt) {
       case 'p':
@@ -73,16 +77,19 @@ int main (int argc, char** argv) {
 	cout << "\n\nUsage:\n"
 	     << "\r\t-p <Percentage of RAM to use>\n"
 	     << "\r\t-s <Matrix (NxN) size>\n"
+	     << "\r\t-f <Output filename>\n"
 	     << endl;
+	exit(0);
 	break;
       case '?':
-	cerr << "Use option -h to display a help message.";
+	cerr << "Use option -h to display a help message." << endl;
+	MPI_Abort(MPI_COMM_WORLD, ERROR);
+	break;
       default:
+	cerr << "Use option -h to display a help message." << endl;
 	MPI_Abort(MPI_COMM_WORLD, ERROR);
       }
     }
-
-    cout << opt << endl;
 
     filename_length = strlen(filename) + 1;
     sysinfo(&mem_info);
