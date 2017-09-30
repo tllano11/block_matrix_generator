@@ -4,8 +4,8 @@
 
 using namespace std;
 
-int main() {
-    ifstream ifs("./mini.out", ios::binary|ios::ate);
+int main(int argc, char** argv) {
+    ifstream ifs("./out.bin", ios::binary|ios::ate);
     ifstream::pos_type pos = ifs.tellg();
 
     cout << "Size: " << pos << endl;
@@ -17,7 +17,7 @@ int main() {
 
     long double* output = (long double*) result;
 
-    int size = 10;
+    int size = atoi(argv[1]);
 
     for(int i = 0; i < size; ++i){
       for(int j=0; j < size; ++j){
