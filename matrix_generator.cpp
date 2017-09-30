@@ -16,7 +16,7 @@
 
 using namespace std;
 
-void fill_with_random(long double* data, long rows_per_proc, long matrix_size, long inital_row) {
+void fill_with_random(long double* data, long rows_per_proc, long matrix_size, long inital_row, long double delta) {
   random_device rd;
   mt19937_64 mt(rd());
 
@@ -29,23 +29,27 @@ void fill_with_random(long double* data, long rows_per_proc, long matrix_size, l
       data[i * matrix_size + j] = urd(mt);
       accum += abs(data[i * matrix_size + j]);
     }
-    data[i * matrix_size + inital_row] = accum + 1;
+    long double* diagonal = &data[i * matrix_size + inital_row];
+    *diagonal = accum - *diagonal + delta;
     inital_row++;
   }
 }
 
-void print_data(long double* data, long data_size) {
-  for (long i = 0; i < data_size; ++i) {
-    cout << data[i] << " ";
+void print_data(long double* data, long rows_per_proc, long n) {
+  for (long i = 0; i < rows_per_proc; ++i) {
+    for (long j = 0; j < n; ++j){
+      cout << data[i * n + j] << " ";
+    }
+    cout << endl;
   }
-  cout << endl;
 }
 
 int main (int argc, char** argv) {
-  int opt, num_procs, rank, total_rows, rows_per_proc, filename_length;
+  int opt, num_procs, rank, rows_per_iter, rows_per_proc, max_rows_per_iter, filename_length;
   struct sysinfo mem_info;
   long matrix_size, row_size;
   double mem_percentage;
+  long double delta;
   MPI_Offset my_offset, my_current_offset;
   MPI_File mpi_file;
   MPI_Status status;
@@ -62,7 +66,7 @@ int main (int argc, char** argv) {
       exit(0);
     }
 
-    while ((opt = getopt(argc, argv, "p:s:f:h")) != EOF) {
+    while ((opt = getopt(argc, argv, "p:s:f:d:h")) != EOF) {
       switch (opt) {
       case 'p':
 	mem_percentage = stof(optarg);
@@ -74,20 +78,26 @@ int main (int argc, char** argv) {
         filename = optarg;
         break;
       case 'h':
-	cout << "\n\nUsage:\n"
+	cout << "\nUsage:\n"
 	     << "\r\t-p <Percentage of RAM to use>\n"
 	     << "\r\t-s <Matrix (NxN) size>\n"
 	     << "\r\t-f <Output filename>\n"
 	     << endl;
+	MPI_Finalize();
 	exit(0);
+	break;
+      case 'd':
+	delta = stof(optarg);
 	break;
       case '?':
 	cerr << "Use option -h to display a help message." << endl;
-	MPI_Abort(MPI_COMM_WORLD, ERROR);
+	MPI_Finalize();
+	exit(0);
 	break;
       default:
 	cerr << "Use option -h to display a help message." << endl;
-	MPI_Abort(MPI_COMM_WORLD, ERROR);
+	MPI_Finalize();
+	exit(0);
       }
     }
 
@@ -95,15 +105,15 @@ int main (int argc, char** argv) {
     sysinfo(&mem_info);
     double mem_to_use = mem_info.freeram * mem_percentage;
     row_size = matrix_size * sizeof(long double);
-    total_rows = floor(mem_to_use /row_size);
-    rows_per_proc = floor(total_rows / num_procs);
-
+    max_rows_per_iter = floor(mem_to_use /row_size);
+    rows_per_proc = floor(max_rows_per_iter / num_procs);
+    rows_per_iter = rows_per_proc * num_procs;
 #ifdef DEBUG
     cout << string(50, '*') << endl;
     cout << "Total RAM to use = " << mem_to_use << endl;
     cout << "Single row size in RAM = " << row_size << endl;
-    cout << "Rows to produce per iteration = " << total_rows << endl;
     cout << "Rows to produce per processor = " << rows_per_proc << endl;
+    cout << "Rows to produce per iteration = " << rows_per_iter << endl;
     cout << string(50, '*') << endl;
 #endif // DEBUG
 
@@ -118,26 +128,28 @@ int main (int argc, char** argv) {
     } else if (rows_per_proc < 1) {
       cerr << "Not even a single row of a " << matrix_size << "x"
 	   << matrix_size << " matrix can be loaded into "
-	   << "your system RAM without swapping.";
+	   << "your system RAM without swapping." << endl;
       MPI_Abort(MPI_COMM_WORLD, ERROR);
     }
   }
   MPI_Bcast(&row_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&matrix_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
-  MPI_Bcast(&total_rows, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+  MPI_Bcast(&rows_per_iter, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&rows_per_proc, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&filename_length, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+  MPI_Bcast(&delta, 1, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
+
   if (rank != 0 ){
     filename = new char[filename_length];
   }
-  MPI_Bcast(filename, filename_length, MPI_CHAR, MASTER, MPI_COMM_WORLD);
 
+  MPI_Bcast(filename, filename_length, MPI_CHAR, MASTER, MPI_COMM_WORLD);
 
 #ifdef DEBUG
   cout << "Rank " << rank << " received row_size = "
        << row_size << endl;
-  cout << "Rank " << rank << " received total_rows = "
-       << total_rows << endl;
+  cout << "Rank " << rank << " received rows_per_iter = "
+       << rows_per_iter << endl;
   cout << "Rank " << rank << " received rows_per_proc = "
        << rows_per_proc << endl;
   cout << "Rank " << rank << " received matrix_size = "
@@ -168,12 +180,13 @@ int main (int argc, char** argv) {
       delete data;
       final_it_row = matrix_size;
       rows_per_proc = final_it_row - initial_it_row;
+      cout << rows_per_proc << endl;
       data_size = matrix_size * rows_per_proc;
       data = new long double[data_size];
     }
-    cout << "Rank: " << rank << " Generating Random Nums" << endl;
-    fill_with_random(data, rows_per_proc, matrix_size, initial_it_row);
-    cout << "Rank: " << rank << " Before Write" << endl;
+
+    fill_with_random(data, rows_per_proc, matrix_size, initial_it_row, delta);
+    print_data(data, rows_per_proc, matrix_size);
     MPI_File_write(mpi_file, data, data_size, MPI_LONG_DOUBLE, &status);
 
 #ifdef DEBUG
@@ -181,12 +194,14 @@ int main (int argc, char** argv) {
     cout << "Rank: " << rank << " My Final Offset: " << my_current_offset << endl;
 #endif //DEBUG
 
-    cout << "Rank: " << rank << " After Write" << endl;
+    //cout << "Rank: " << rank << " After Write" << endl;
     //print_data(data, data_size);
-    initial_it_row += total_rows;
-    my_offset += (long long)total_rows * (long long)sizeof(long double) * (long long)matrix_size;
+    initial_it_row += rows_per_iter;
+    my_offset += (long long)rows_per_iter * (long long)sizeof(long double) * (long long)matrix_size;
   }
   MPI_File_close(&mpi_file);
+
+
   MPI_Finalize();
   return SUCCESS;
 }
