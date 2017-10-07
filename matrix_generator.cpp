@@ -117,7 +117,7 @@ int main (int argc, char** argv) {
     cout << string(50, '*') << endl;
 #endif // DEBUG
 
-    if (matrix_size < rows_per_proc) {
+    if (matrix_size < max_rows_per_iter) {
       cerr << "This program is intendend to produce large matrices, "
 	   << "which can not be loaded into RAM without swapping. "
 	   << "Therefore a matrix of size " << matrix_size
@@ -171,8 +171,9 @@ int main (int argc, char** argv) {
     MPI_File_get_position(mpi_file, &my_current_offset);
 
 #ifdef DEBUG
-    cout << "Rank: " << rank << " My Current Offset: " << my_current_offset << endl;
+    //cout << "Rank: " << rank << " My Current Offset: " << my_current_offset << endl;
     //cout << "Rank: " << rank << " My inital row: " << initial_it_row << endl;
+    cout << "Rank: " << rank << endl;
 #endif //DEBUG
 
     final_it_row = initial_it_row + rows_per_proc - 1;
