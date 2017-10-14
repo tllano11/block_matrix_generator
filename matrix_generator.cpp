@@ -9,6 +9,7 @@
 #include<cmath>
 #include<sys/sysinfo.h>
 #include<cstring>
+#include<fstream>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -68,9 +69,6 @@ int main (int argc, char** argv) {
   long cols_num, row_size;
   double mem_percentage;
   long double delta;
-  MPI_Offset my_offset, my_current_offset;
-  MPI_File mpi_file;
-  MPI_Status status;
   char* filename;
 
   MPI_Init(&argc, &argv);
@@ -166,7 +164,6 @@ int main (int argc, char** argv) {
   if (rank != 0 ){
     filename = new char[filename_length];
   }
-
   MPI_Bcast(filename, filename_length, MPI_CHAR, MASTER, MPI_COMM_WORLD);
 
 #ifdef DEBUG
@@ -182,14 +179,25 @@ int main (int argc, char** argv) {
        << filename << endl;
 #endif //DEBUG
 
+  MPI_Offset A_offset, A_current_offset, b_offset, b_current_offset;
+  MPI_File A_file;
+  MPI_Status A_status, b_status;
+
+  int b_filename_length = filename_length + 2;
+  char b_filename[b_filename_length];
+  strcpy(b_filename, "b_");
+  strcat(b_filename, filename);
+  cout << b_filename[3] << endl;
   long initial_it_row = rank * rows_per_proc;
   long final_it_row;
   long data_size = rows_per_proc * cols_num;
-  long double* data = new long double[data_size];
+  long double* data = new long double[ data_size ];
   long double* b_vector = new long double[ cols_num ];
-  my_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
 
-  MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &mpi_file);
+  A_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
+
+  MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &A_file);
+  //MPI_File_open(MPI_COMM_WORLD, filename
 
   long double* x_vector = new long double[ cols_num ];
   if(rank == 0){
@@ -199,12 +207,26 @@ int main (int argc, char** argv) {
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(x_vector, cols_num, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
 
+  if(rank == 0){
+    int x_filename_length = filename_length + 2;
+    char x_filename[x_filename_length];
+    strcpy(x_filename, "x_");
+    strcat(x_filename, filename);
+
+    if(FILE* f1 = fopen(x_filename, "wb")) {
+      fwrite(x_vector, sizeof(long double), cols_num, f1);
+      fclose(f1);
+    }
+
+    print_data(x_vector, cols_num, 1);
+  }
+
   while (initial_it_row < cols_num) {
-    MPI_File_seek(mpi_file, my_offset, MPI_SEEK_SET);
-    MPI_File_get_position(mpi_file, &my_current_offset);
+    MPI_File_seek(A_file, A_offset, MPI_SEEK_SET);
+    MPI_File_get_position(A_file, &A_current_offset);
 
 #ifdef DEBUG
-    //cout << "Rank: " << rank << " My Current Offset: " << my_current_offset << endl;
+    //cout << "Rank: " << rank << " My Current Offset: " << A_current_offset << endl;
     //cout << "Rank: " << rank << " My inital row: " << initial_it_row << endl;
     cout << "Rank: " << rank << endl;
 #endif //DEBUG
@@ -224,25 +246,22 @@ int main (int argc, char** argv) {
     generate_b_vector(b_vector, data, x_vector, cols_num, rows_per_proc);
 
     // cout << string(50, '*') << endl;
-    print_data(b_vector, rows_per_proc, 1);
+    //print_data(b_vector, rows_per_proc, 1);
 
-    MPI_File_write(mpi_file, data, data_size, MPI_LONG_DOUBLE, &status);
+    MPI_File_write(A_file, data, data_size, MPI_LONG_DOUBLE, &A_status);
 
 #ifdef DEBUG
-    MPI_File_get_position(mpi_file, &my_current_offset);
-    cout << "Rank: " << rank << " My Final Offset: " << my_current_offset << endl;
+    MPI_File_get_position(A_file, &A_current_offset);
+    cout << "Rank: " << rank << " My Final Offset: " << A_current_offset << endl;
 #endif //DEBUG
 
-    //cout << "Rank: " << rank << " After Write" << endl;
-    //print_data(data, data_size);
     initial_it_row += rows_per_iter;
-    my_offset += (long long)rows_per_iter * (long long)sizeof(long double) * (long long)cols_num;
+    A_offset += (long long)rows_per_iter * (long long)sizeof(long double) * (long long)cols_num;
   }
 
-  MPI_File_close(&mpi_file);
+  MPI_File_close(&A_file);
 
-  //  print_data(b_vector, rows_per_proc,
-  //cout << rank << " " << rows_per_proc << endl;
+  delete data, filename, x_vector, b_vector;
 
   MPI_Finalize();
   return SUCCESS;

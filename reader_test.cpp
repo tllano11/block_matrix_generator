@@ -5,7 +5,7 @@
 using namespace std;
 
 int main(int argc, char** argv) {
-    ifstream ifs("./out.bin", ios::binary|ios::ate);
+    ifstream ifs(argv[1], ios::binary|ios::ate);
     ifstream::pos_type pos = ifs.tellg();
 
     cout << "Size: " << pos << endl;
@@ -17,11 +17,12 @@ int main(int argc, char** argv) {
 
     long double* output = (long double*) result;
 
-    int size = atoi(argv[1]);
+    int row = atoi(argv[2]);
+    int col = atoi(argv[3]);
 
-    for(int i = 0; i < size; ++i){
-      for(int j=0; j < size; ++j){
-	cout << output[i*size+j] << " ";
+    for(int i = 0; i < row; ++i){
+      for(int j=0; j < col; ++j){
+	cout << output[i * col + j] << " ";
       }
       cout << endl;
     }
