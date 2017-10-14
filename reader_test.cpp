@@ -8,8 +8,6 @@ int main(int argc, char** argv) {
     ifstream ifs(argv[1], ios::binary|ios::ate);
     ifstream::pos_type pos = ifs.tellg();
 
-    cout << "Size: " << pos << endl;
-
     char* result = new char[pos];
 
     ifs.seekg(0, ios::beg);
