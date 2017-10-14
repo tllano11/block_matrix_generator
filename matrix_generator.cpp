@@ -16,22 +16,40 @@
 
 using namespace std;
 
-void fill_with_random(long double* data, long rows_per_proc, long matrix_size, long inital_row, long double delta) {
+void fill_with_random(long double* data, long rows_per_proc, long cols_num, long inital_row, long double delta) {
   random_device rd;
   mt19937_64 mt(rd());
-
-  uniform_real_distribution<long double> urd(-matrix_size, matrix_size);
+  uniform_real_distribution<long double> urd(-cols_num, cols_num);
   long double accum;
 
   for (long i = 0; i < rows_per_proc; ++i) {
     accum = 0;
-    for (long j = 0; j < matrix_size; ++j) {
-      data[i * matrix_size + j] = urd(mt);
-      accum += abs(data[i * matrix_size + j]);
+    for (long j = 0; j < cols_num; ++j) {
+      data[i * cols_num + j] = urd(mt);
+      accum += abs(data[i * cols_num + j]);
     }
-    long double* diagonal = &data[i * matrix_size + inital_row];
+    long double* diagonal = &data[i * cols_num + inital_row];
     *diagonal = accum - *diagonal + delta;
     inital_row++;
+  }
+}
+
+void generate_x_vector(long double* x_vector, long n){
+  random_device rd;
+  mt19937_64 mt(rd());
+  uniform_real_distribution<long double> urd(-n, n);
+
+  for(long i = 0; i < n; ++i){
+    x_vector[i] = urd(mt);
+  }
+}
+
+void generate_b_vector(long double* b_vector, long double* data, long double* x_vector, long cols_num, long rows_per_proc){
+  for(long i = 0; i < rows_per_proc; ++i){
+    b_vector[i] = 0;
+    for(long j = 0; j < cols_num; ++j){
+      b_vector[i] += data[ i * cols_num + j] * x_vector[j];
+    }
   }
 }
 
@@ -47,7 +65,7 @@ void print_data(long double* data, long rows_per_proc, long n) {
 int main (int argc, char** argv) {
   int opt, num_procs, rank, rows_per_iter, rows_per_proc, max_rows_per_iter, filename_length;
   struct sysinfo mem_info;
-  long matrix_size, row_size;
+  long cols_num, row_size;
   double mem_percentage;
   long double delta;
   MPI_Offset my_offset, my_current_offset;
@@ -72,7 +90,7 @@ int main (int argc, char** argv) {
 	mem_percentage = stof(optarg);
 	break;
       case 's':
-	matrix_size = stol(optarg);
+	cols_num = stol(optarg);
 	break;
       case 'f':
         filename = optarg;
@@ -82,29 +100,35 @@ int main (int argc, char** argv) {
 	     << "\r\t-p <Percentage of RAM to use>\n"
 	     << "\r\t-s <Matrix (NxN) size>\n"
 	     << "\r\t-f <Output filename>\n"
+	     << "\r\t-d <delta value>\n"
 	     << endl;
-	MPI_Finalize();
-	exit(0);
+	MPI_Abort(MPI_COMM_WORLD, 0);
 	break;
       case 'd':
 	delta = stof(optarg);
 	break;
       case '?':
 	cerr << "Use option -h to display a help message." << endl;
-	MPI_Finalize();
-	exit(0);
+	MPI_Abort(MPI_COMM_WORLD, 0);
 	break;
       default:
 	cerr << "Use option -h to display a help message." << endl;
-	MPI_Finalize();
-	exit(0);
+	MPI_Abort(MPI_COMM_WORLD, 0);
       }
     }
 
     filename_length = strlen(filename) + 1;
     sysinfo(&mem_info);
     double mem_to_use = mem_info.freeram * mem_percentage;
-    row_size = matrix_size * sizeof(long double);
+    row_size = cols_num * sizeof(long double);
+
+    /* Substract the size occupied by the x vector times the number of process,
+       because they will need it to perform the matrix multiplication of its own submatrix.*/
+    mem_to_use -= row_size * num_procs;
+
+    // Substract one additional row_size the allocate space for the b vector.
+    mem_to_use -= row_size;
+
     max_rows_per_iter = floor(mem_to_use /row_size);
     rows_per_proc = floor(max_rows_per_iter / num_procs);
     rows_per_iter = rows_per_proc * num_procs;
@@ -117,23 +141,23 @@ int main (int argc, char** argv) {
     cout << string(50, '*') << endl;
 #endif // DEBUG
 
-    if (matrix_size < max_rows_per_iter) {
+    if (cols_num < max_rows_per_iter) {
       cerr << "This program is intendend to produce large matrices, "
 	   << "which can not be loaded into RAM without swapping. "
-	   << "Therefore a matrix of size " << matrix_size
+	   << "Therefore a matrix of size " << cols_num
 	   << " is not suitable to produce given your system "
 	   << "resources." << endl;
       MPI_Abort(MPI_COMM_WORLD, ERROR);
 
     } else if (rows_per_proc < 1) {
-      cerr << "Not even a single row of a " << matrix_size << "x"
-	   << matrix_size << " matrix can be loaded into "
+      cerr << "Not even a single row of a " << cols_num << "x"
+	   << cols_num << " matrix can be loaded into "
 	   << "your system RAM without swapping." << endl;
       MPI_Abort(MPI_COMM_WORLD, ERROR);
     }
   }
   MPI_Bcast(&row_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
-  MPI_Bcast(&matrix_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
+  MPI_Bcast(&cols_num, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&rows_per_iter, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&rows_per_proc, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&filename_length, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
@@ -152,21 +176,30 @@ int main (int argc, char** argv) {
        << rows_per_iter << endl;
   cout << "Rank " << rank << " received rows_per_proc = "
        << rows_per_proc << endl;
-  cout << "Rank " << rank << " received matrix_size = "
-       << matrix_size << endl;
+  cout << "Rank " << rank << " received cols_num = "
+       << cols_num << endl;
   cout << "Rank " << rank << " Filename = "
        << filename << endl;
 #endif //DEBUG
 
   long initial_it_row = rank * rows_per_proc;
   long final_it_row;
-  long data_size = rows_per_proc * matrix_size;
+  long data_size = rows_per_proc * cols_num;
   long double* data = new long double[data_size];
+  long double* b_vector = new long double[ cols_num ];
   my_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
 
   MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &mpi_file);
 
-  while (initial_it_row < matrix_size) {
+  long double* x_vector = new long double[ cols_num ];
+  if(rank == 0){
+    generate_x_vector(x_vector, cols_num);
+  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Bcast(x_vector, cols_num, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
+
+  while (initial_it_row < cols_num) {
     MPI_File_seek(mpi_file, my_offset, MPI_SEEK_SET);
     MPI_File_get_position(mpi_file, &my_current_offset);
 
@@ -177,17 +210,22 @@ int main (int argc, char** argv) {
 #endif //DEBUG
 
     final_it_row = initial_it_row + rows_per_proc - 1;
-    if (final_it_row > matrix_size) {
+    if (final_it_row > cols_num) {
       delete data;
-      final_it_row = matrix_size;
+      final_it_row = cols_num;
       rows_per_proc = final_it_row - initial_it_row;
-      cout << rows_per_proc << endl;
-      data_size = matrix_size * rows_per_proc;
+      data_size = cols_num * rows_per_proc;
       data = new long double[data_size];
     }
 
-    fill_with_random(data, rows_per_proc, matrix_size, initial_it_row, delta);
-    print_data(data, rows_per_proc, matrix_size);
+    fill_with_random(data, rows_per_proc, cols_num, initial_it_row, delta);
+    //print_data(data, rows_per_proc, cols_num);
+
+    generate_b_vector(b_vector, data, x_vector, cols_num, rows_per_proc);
+
+    // cout << string(50, '*') << endl;
+    print_data(b_vector, rows_per_proc, 1);
+
     MPI_File_write(mpi_file, data, data_size, MPI_LONG_DOUBLE, &status);
 
 #ifdef DEBUG
@@ -198,10 +236,13 @@ int main (int argc, char** argv) {
     //cout << "Rank: " << rank << " After Write" << endl;
     //print_data(data, data_size);
     initial_it_row += rows_per_iter;
-    my_offset += (long long)rows_per_iter * (long long)sizeof(long double) * (long long)matrix_size;
+    my_offset += (long long)rows_per_iter * (long long)sizeof(long double) * (long long)cols_num;
   }
+
   MPI_File_close(&mpi_file);
 
+  //  print_data(b_vector, rows_per_proc,
+  //cout << rank << " " << rows_per_proc << endl;
 
   MPI_Finalize();
   return SUCCESS;
