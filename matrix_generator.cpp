@@ -1,7 +1,7 @@
 #include<iostream>
 #include<random>
 #include<limits>
-#include<stdio.h>
+#include<cstdio>
 #include<ctype.h>
 #include<stdlib.h>
 #include<getopt.h>
@@ -9,7 +9,6 @@
 #include<cmath>
 #include<sys/sysinfo.h>
 #include<cstring>
-#include<fstream>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -180,24 +179,26 @@ int main (int argc, char** argv) {
 #endif //DEBUG
 
   MPI_Offset A_offset, A_current_offset, b_offset, b_current_offset;
-  MPI_File A_file;
+  MPI_File A_file, b_file;
   MPI_Status A_status, b_status;
 
   int b_filename_length = filename_length + 2;
   char b_filename[b_filename_length];
   strcpy(b_filename, "b_");
   strcat(b_filename, filename);
-  cout << b_filename[3] << endl;
+
   long initial_it_row = rank * rows_per_proc;
   long final_it_row;
+  long long rows_per_iter_size;
   long data_size = rows_per_proc * cols_num;
   long double* data = new long double[ data_size ];
   long double* b_vector = new long double[ cols_num ];
 
   A_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
+  b_offset = (long long)rank * (long long)sizeof(long double) * (long long)rows_per_proc;
 
   MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &A_file);
-  //MPI_File_open(MPI_COMM_WORLD, filename
+  MPI_File_open(MPI_COMM_WORLD, b_filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &b_file);
 
   long double* x_vector = new long double[ cols_num ];
   if(rank == 0){
@@ -225,6 +226,9 @@ int main (int argc, char** argv) {
     MPI_File_seek(A_file, A_offset, MPI_SEEK_SET);
     MPI_File_get_position(A_file, &A_current_offset);
 
+    MPI_File_seek(b_file, b_offset, MPI_SEEK_SET);
+    MPI_File_get_position(b_file, &b_current_offset);
+
 #ifdef DEBUG
     //cout << "Rank: " << rank << " My Current Offset: " << A_current_offset << endl;
     //cout << "Rank: " << rank << " My inital row: " << initial_it_row << endl;
@@ -249,6 +253,7 @@ int main (int argc, char** argv) {
     //print_data(b_vector, rows_per_proc, 1);
 
     MPI_File_write(A_file, data, data_size, MPI_LONG_DOUBLE, &A_status);
+    MPI_File_write(b_file, b_vector, rows_per_proc, MPI_LONG_DOUBLE, &b_status);
 
 #ifdef DEBUG
     MPI_File_get_position(A_file, &A_current_offset);
@@ -256,12 +261,20 @@ int main (int argc, char** argv) {
 #endif //DEBUG
 
     initial_it_row += rows_per_iter;
-    A_offset += (long long)rows_per_iter * (long long)sizeof(long double) * (long long)cols_num;
+    rows_per_iter_size = (long long)rows_per_iter * (long long)sizeof(long double);
+    A_offset += rows_per_iter_size * (long long)cols_num;
+    b_offset += rows_per_iter_size;
   }
 
   MPI_File_close(&A_file);
+  MPI_File_close(&b_file);
 
-  delete data, filename, x_vector, b_vector;
+  delete[] data;
+  if(rank != 0){
+    delete[] filename;
+  }
+  delete[] x_vector;
+  delete[] b_vector;
 
   MPI_Finalize();
   return SUCCESS;
