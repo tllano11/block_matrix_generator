@@ -5,7 +5,9 @@
 #include<jacobi.h>
 
 namespace solver {
-void solve(long double* A, long double* b,
+  template <class T> T* cuda_allocate (int size);
+
+  void solve(long double* A, long double* b,
 	     long double* x_c, uint32_t niter,
 	     float tol, float rel);
 }
