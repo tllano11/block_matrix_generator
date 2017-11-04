@@ -7,6 +7,8 @@
 
 namespace solver {
   namespace jacobi {
+    __device__ long double abs(long double number);
+
     __global__ void solve(long double* A, long double* b,
 			  long double* x_c, long double* x_n,
 			  uint32_t n, float rel);

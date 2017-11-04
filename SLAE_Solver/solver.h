@@ -1,10 +1,11 @@
 #ifndef SOLVER_H
 #define SOLVER_H
 
-#include<stdlib.h>
-#include<jacobi.h>
-#include<assert.h>
-#include<algorithm>
+#include <stdlib.h>
+#include <assert.h>
+#include <algorithm>
+#include <iostream>
+#include "jacobi.h"
 
 namespace solver {
   template <class T> T* cuda_allocate (int size);

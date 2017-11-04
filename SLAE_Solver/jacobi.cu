@@ -1,6 +1,14 @@
-#include<jacobi.h>
+#include "jacobi.h"
 
-using namespace solver::jacobi;
+using namespace solver;
+
+__device__ long double jacobi::abs(long double number) {
+  if (number < 0) {
+    return -number;
+  } else {
+    return number;
+  }
+}
 
 /**
    Use Iterative Jacobi to compute an answer for the
@@ -21,7 +29,7 @@ __global__ void jacobi::solve(long double* A, long double* b,
     long double sigma = 0;
     //Indicates which row must be computed by the current thread.
     uint32_t index = idx * n;
-    for (uint32_t l = 0; l < n; ++l) {
+    for (uint32_t j = 0; j < n; ++j) {
       //Ensures not to use a diagonal value when computing.
       if (idx != j) {
 	sigma += A[index + j] * x_c[j];

@@ -1,6 +1,7 @@
-#include<solver.h>
+#include "solver.h"
 
 using namespace solver;
+using namespace std;
 
 template <class T> T* solver::cuda_allocate (int size) {
   T* device_ptr;
@@ -9,7 +10,7 @@ template <class T> T* solver::cuda_allocate (int size) {
 }
 
 template <class T> T* solver::to_device(T* src, int size) {
-  T* dst = cuda_allocate(size);
+  T* dst = cuda_allocate<long double>(size);
   assert(cudaSuccess == cudaMemcpy(dst, src, size*sizeof(T), cudaMemcpyHostToDevice));
   return dst;
 }
@@ -17,11 +18,13 @@ template <class T> T* solver::to_device(T* src, int size) {
 void solver::solve(long double* A, long double* b,
 		   long double* x_c, uint32_t niter,
 		   float tol, float rel){
-  int tpb = 32;
-  int bpg = bpg = len(A) + (tpb - 1) / tpb;
 
   int vector_size = sizeof(x_c)/sizeof(long double*);
   int matrix_size = sizeof(A)/sizeof(long double*);
+
+  int tpb = 32;
+  int bpg = bpg = matrix_size + (tpb - 1) / tpb;
+
   // Pointers to host memory
   long double* x_n = new long double[vector_size]; // x next
   long double* x_e = new long double[vector_size]; // x error
@@ -44,7 +47,7 @@ void solver::solve(long double* A, long double* b,
       jacobi::compute_error <<< bpg, tpb >>> (gpu_x_n, gpu_x_c, gpu_x_e, vector_size);
     }
     assert(cudaSuccess == cudaMemcpy(x_e, gpu_x_e, vector_size*sizeof(long double), cudaMemcpyDeviceToHost));
-    error = (float) *(max_element(x_e, x_e + vector_size));
+    error = (float) *(std::max_element(x_e, x_e + vector_size));
     count++;
   }
 
@@ -54,9 +57,9 @@ void solver::solve(long double* A, long double* b,
     } else {
       assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_c, vector_size*sizeof(long double), cudaMemcpyDeviceToHost));
     }
-    cout << "Jacobi succeeded in " << count << " iterations with an error of "
-	 << error << endl;
+    std::cout << "Jacobi succeeded in " << count << " iterations with an error of "
+	 << error << std::endl;
   } else {
-    cout << "Jacobi failed." << endl;
+    std::cout << "Jacobi failed." << std::endl;
   }
 }
