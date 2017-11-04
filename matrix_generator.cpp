@@ -202,8 +202,8 @@ int main (int argc, char** argv) {
   MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &A_file);
   MPI_File_open(MPI_COMM_WORLD, b_filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &b_file);
 
-  long double* x_vector = new long double[ cols_num ];
   start_time = MPI_Wtime();
+  long double* x_vector = new long double[ cols_num ];
   if(rank == MASTER){
     generate_x_vector(x_vector, cols_num);
   }

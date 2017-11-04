@@ -205,43 +205,23 @@ int main (int argc, char** argv) {
   start_time = MPI_Wtime();
   long double* x_vector = new long double[ cols_num ];
 
-  // if(rank == MASTER){
-  //   generate_x_vector(x_vector, cols_num);
-  // }
-
-  // MPI_Barrier(MPI_COMM_WORLD);
-  // MPI_Bcast(x_vector, cols_num, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
-  // end_time = MPI_Wtime();
-
-  // delta_time = end_time - start_time;
-
-  // if(rank == MASTER){
-  //   int x_filename_length = filename_length + 2;
-  //   char x_filename[x_filename_length];
-  //   strcpy(x_filename, "x_");
-  //   strcat(x_filename, filename);
-
-  //   if(FILE* f1 = fopen(x_filename, "wb")) {
-  //     fwrite(x_vector, sizeof(long double), cols_num, f1);
-  //     fclose(f1);
-  //   }
-
-  //   print_data(x_vector, cols_num, 1);
-  // }
   int pos_by_proc = round(cols_num/(double)num_procs);
   //int initial_pos = rank * pos_by_proc;
-  int final_pos;
   int* displacements = new int[ num_procs ];
   int* recvcounts = new int[ num_procs ];
 
   for(int i = 0; i < num_procs; ++i){
     displacements[i] = i * pos_by_proc;
-    final_pos = displacements[i] + pos_by_proc - 1;
 
-    if(final_pos > cols_num) {
-      final_pos = cols_num;
-      pos_by_proc = final_pos - displacements[i];
+    if (i == num_procs - 1){
+      pos_by_proc = cols_num - displacements[i - 1];
     }
+      // final_pos = displacements[i] + pos_by_proc - 1;
+
+      // if(final_pos > cols_num) {
+      // 	final_pos = cols_num;
+      // 	pos_by_proc = final_pos - displacements[i];
+      // }
 
     recvcounts[i] = pos_by_proc;
   }
