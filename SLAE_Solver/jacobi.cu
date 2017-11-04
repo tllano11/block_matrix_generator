@@ -46,7 +46,7 @@ __global__ void jacobi::solve(long double* A, long double* b,
    @return None
 */
 __global__ void jacobi::compute_error (long double* x_c, long double* x_n,
-				       long double* x_e, n) {
+				       long double* x_e, uint32_t n) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
     x_e[idx] = abs(x_n[idx] - x_c[idx]);

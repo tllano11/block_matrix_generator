@@ -3,9 +3,13 @@
 
 #include<stdlib.h>
 #include<jacobi.h>
+#include<assert.h>
+#include<algorithm>
 
 namespace solver {
   template <class T> T* cuda_allocate (int size);
+
+  template <class T> T* to_device(T* src, int size);
 
   void solve(long double* A, long double* b,
 	     long double* x_c, uint32_t niter,
