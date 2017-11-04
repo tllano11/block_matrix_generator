@@ -160,7 +160,7 @@ int main (int argc, char** argv) {
   MPI_Bcast(&filename_length, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&delta, 1, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
 
-  if (rank != 0 ){
+  if (rank != MASTER){
     filename = new char[filename_length];
   }
   MPI_Bcast(filename, filename_length, MPI_CHAR, MASTER, MPI_COMM_WORLD);
@@ -194,6 +194,8 @@ int main (int argc, char** argv) {
   long double* data = new long double[ data_size ];
   long double* b_vector = new long double[ cols_num ];
 
+  double start_time, end_time, delta_time, longest_time;
+
   A_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
   b_offset = (long long)rank * (long long)sizeof(long double) * (long long)rows_per_proc;
 
@@ -201,14 +203,18 @@ int main (int argc, char** argv) {
   MPI_File_open(MPI_COMM_WORLD, b_filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &b_file);
 
   long double* x_vector = new long double[ cols_num ];
-  if(rank == 0){
+  start_time = MPI_Wtime();
+  if(rank == MASTER){
     generate_x_vector(x_vector, cols_num);
   }
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(x_vector, cols_num, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
+  end_time = MPI_Wtime();
 
-  if(rank == 0){
+  delta_time = end_time - start_time;
+
+  if(rank == MASTER){
     int x_filename_length = filename_length + 2;
     char x_filename[x_filename_length];
     strcpy(x_filename, "x_");
@@ -270,11 +276,17 @@ int main (int argc, char** argv) {
   MPI_File_close(&b_file);
 
   delete[] data;
-  if(rank != 0){
+  if(rank != MASTER){
     delete[] filename;
   }
   delete[] x_vector;
   delete[] b_vector;
+
+  MPI_Allreduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+
+  if(rank == MASTER){
+    printf("Longest time to produce and get x vector %f secs\n", longest_time);
+  }
 
   MPI_Finalize();
   return SUCCESS;
