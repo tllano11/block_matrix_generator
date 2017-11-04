@@ -214,7 +214,7 @@ int main (int argc, char** argv) {
     displacements[i] = i * pos_by_proc;
 
     if (i == num_procs - 1){
-      pos_by_proc = cols_num - displacements[i - 1];
+      pos_by_proc = cols_num - displacements[i];
     }
       // final_pos = displacements[i] + pos_by_proc - 1;
 
@@ -226,7 +226,7 @@ int main (int argc, char** argv) {
     recvcounts[i] = pos_by_proc;
   }
 
-  //  printf("Rank: %d pos_proc: %d init_pos: %d\n", rank, recvcounts[rank], displacements[rank]);
+  //printf("Rank: %d pos_proc: %d init_pos: %d\n", rank, recvcounts[rank], displacements[rank]);
 
   long double* x_subvector = new long double[ recvcounts[rank] ];
 
