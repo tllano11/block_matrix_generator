@@ -210,6 +210,7 @@ int main (int argc, char** argv) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Bcast(x_vector, cols_num, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
+
   end_time = MPI_Wtime();
 
   delta_time = end_time - start_time;
@@ -225,7 +226,7 @@ int main (int argc, char** argv) {
       fclose(f1);
     }
 
-    print_data(x_vector, cols_num, 1);
+    //print_data(x_vector, cols_num, 1);
   }
 
   while (initial_it_row < cols_num) {

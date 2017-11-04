@@ -163,6 +163,7 @@ int main (int argc, char** argv) {
   if (rank != MASTER){
     filename = new char[filename_length];
   }
+
   MPI_Bcast(filename, filename_length, MPI_CHAR, MASTER, MPI_COMM_WORLD);
 
 #ifdef DEBUG
@@ -231,11 +232,11 @@ int main (int argc, char** argv) {
   long double* x_subvector = new long double[ recvcounts[rank] ];
 
   generate_x_vector(x_subvector, recvcounts[rank]);
-  print_data(x_subvector, recvcounts[rank], 1);
+  //print_data(x_subvector, recvcounts[rank], 1);
 
   MPI_Allgatherv(x_subvector, recvcounts[rank], MPI_LONG_DOUBLE, x_vector, recvcounts, displacements, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
-
   end_time = MPI_Wtime();
+
   delta_time = end_time - start_time;
 
   while (initial_it_row < cols_num) {
