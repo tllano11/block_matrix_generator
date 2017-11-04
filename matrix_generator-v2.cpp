@@ -217,12 +217,6 @@ int main (int argc, char** argv) {
     if (i == num_procs - 1){
       pos_by_proc = cols_num - displacements[i];
     }
-      // final_pos = displacements[i] + pos_by_proc - 1;
-
-      // if(final_pos > cols_num) {
-      // 	final_pos = cols_num;
-      // 	pos_by_proc = final_pos - displacements[i];
-      // }
 
     recvcounts[i] = pos_by_proc;
   }
@@ -238,6 +232,28 @@ int main (int argc, char** argv) {
   end_time = MPI_Wtime();
 
   delta_time = end_time - start_time;
+
+  MPI_Reduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
+
+  if(rank == MASTER){
+    printf("The longest time to produce and get x vector %f secs\n", longest_time);
+  }
+
+  MPI_Finalize();
+  return 0;
+
+  if(rank == MASTER){
+    int x_filename_length = filename_length + 2;
+    char x_filename[x_filename_length];
+    strcpy(x_filename, "x_");
+    strcat(x_filename, filename);
+
+    if(FILE* f1 = fopen(x_filename, "wb")) {
+      fwrite(x_vector, sizeof(long double), cols_num, f1);
+      fclose(f1);
+    }
+    //print_data(x_vector, cols_num, 1);
+  }
 
   while (initial_it_row < cols_num) {
     MPI_File_seek(A_file, A_offset, MPI_SEEK_SET);
