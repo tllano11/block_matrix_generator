@@ -16,7 +16,7 @@
 
 using namespace std;
 
-void fill_with_random(long double* data, long rows_per_proc, long cols_num, long inital_row, long double delta) {
+void fill_with_random(long double* A_submatrix, long rows_per_proc, long cols_num, long inital_row, long double delta) {
   random_device rd;
   mt19937_64 mt(rd());
   uniform_real_distribution<long double> urd(-cols_num, cols_num);
@@ -25,10 +25,10 @@ void fill_with_random(long double* data, long rows_per_proc, long cols_num, long
   for (long i = 0; i < rows_per_proc; ++i) {
     accum = 0;
     for (long j = 0; j < cols_num; ++j) {
-      data[i * cols_num + j] = urd(mt);
-      accum += abs(data[i * cols_num + j]);
+      A_submatrix[i * cols_num + j] = urd(mt);
+      accum += abs(A_submatrix[i * cols_num + j]);
     }
-    long double* diagonal = &data[i * cols_num + inital_row];
+    long double* diagonal = &A_submatrix[i * cols_num + inital_row];
     *diagonal = accum - *diagonal + delta;
     inital_row++;
   }
@@ -44,19 +44,19 @@ void generate_x_vector(long double* x_vector, int n){
   }
 }
 
-void generate_b_vector(long double* b_vector, long double* data, long double* x_vector, long cols_num, long rows_per_proc){
+void generate_b_subvector(long double* b_subvector, long double* A_submatrix, long double* x_vector, long cols_num, long rows_per_proc){
   for(long i = 0; i < rows_per_proc; ++i){
-    b_vector[i] = 0;
+    b_subvector[i] = 0;
     for(long j = 0; j < cols_num; ++j){
-      b_vector[i] += data[ i * cols_num + j] * x_vector[j];
+      b_subvector[i] += A_submatrix[ i * cols_num + j] * x_vector[j];
     }
   }
 }
 
-void print_data(long double* data, long rows_per_proc, long n) {
+void print_data(long double* A_submatrix, long rows_per_proc, long n) {
   for (long i = 0; i < rows_per_proc; ++i) {
     for (long j = 0; j < n; ++j){
-      cout << data[i * n + j] << " ";
+      cout << A_submatrix[i * n + j] << " ";
     }
     cout << endl;
   }
@@ -191,13 +191,13 @@ int main (int argc, char** argv) {
   long initial_it_row = rank * rows_per_proc;
   long final_it_row;
   long long rows_per_iter_size;
-  long data_size = rows_per_proc * cols_num;
-  long double* data = new long double[ data_size ];
-  long double* b_vector = new long double[ cols_num ];
+  long A_submatrix_size = rows_per_proc * cols_num;
+  long double* A_submatrix = new long double[ A_submatrix_size ];
+  long double* b_subvector = new long double[ rows_per_proc];
 
   double start_time, end_time, delta_time, longest_time;
 
-  A_offset = (long long)rank * (long long)sizeof(long double) * (long long)data_size;
+  A_offset = (long long)rank * (long long)sizeof(long double) * (long long)A_submatrix_size;
   b_offset = (long long)rank * (long long)sizeof(long double) * (long long)rows_per_proc;
 
   MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &A_file);
@@ -233,15 +233,6 @@ int main (int argc, char** argv) {
 
   delta_time = end_time - start_time;
 
-  MPI_Reduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
-
-  if(rank == MASTER){
-    printf("The longest time to produce and get x vector %f secs\n", longest_time);
-  }
-
-  MPI_Finalize();
-  return 0;
-
   if(rank == MASTER){
     int x_filename_length = filename_length + 2;
     char x_filename[x_filename_length];
@@ -270,23 +261,23 @@ int main (int argc, char** argv) {
 
     final_it_row = initial_it_row + rows_per_proc - 1;
     if (final_it_row > cols_num) {
-      delete[] data;
+      delete[] A_submatrix;
       final_it_row = cols_num;
       rows_per_proc = final_it_row - initial_it_row;
-      data_size = cols_num * rows_per_proc;
-      data = new long double[data_size];
+      A_submatrix_size = cols_num * rows_per_proc;
+      A_submatrix = new long double[A_submatrix_size];
     }
 
-    fill_with_random(data, rows_per_proc, cols_num, initial_it_row, delta);
-    //print_data(data, rows_per_proc, cols_num);
+    fill_with_random(A_submatrix, rows_per_proc, cols_num, initial_it_row, delta);
+    //print_data(A_submatrix, rows_per_proc, cols_num);
 
-    generate_b_vector(b_vector, data, x_vector, cols_num, rows_per_proc);
+    generate_b_subvector(b_subvector, A_submatrix, x_vector, cols_num, rows_per_proc);
 
-    // cout << string(50, '*') << endl;
-    //print_data(b_vector, rows_per_proc, 1);
+    //cout << string(50, '*') << endl;
+    //print_data(b_subvector, rows_per_proc, 1);
 
-    MPI_File_write(A_file, data, data_size, MPI_LONG_DOUBLE, &A_status);
-    MPI_File_write(b_file, b_vector, rows_per_proc, MPI_LONG_DOUBLE, &b_status);
+    MPI_File_write(A_file, A_submatrix, A_submatrix_size, MPI_LONG_DOUBLE, &A_status);
+    MPI_File_write(b_file, b_subvector, rows_per_proc, MPI_LONG_DOUBLE, &b_status);
 
 #ifdef DEBUG
     MPI_File_get_position(A_file, &A_current_offset);
@@ -302,18 +293,18 @@ int main (int argc, char** argv) {
   MPI_File_close(&A_file);
   MPI_File_close(&b_file);
 
-  delete[] data;
+  delete[] A_submatrix;
   if(rank != MASTER){
     delete[] filename;
   }
   delete[] x_vector;
-  delete[] b_vector;
+  delete[] b_subvector;
   delete[] x_subvector;
 
-  MPI_Allreduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+  MPI_Reduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
 
   if(rank == MASTER){
-    printf("Longest time to produce and get x vector %f secs\n", longest_time);
+    printf("The longest time to produce and get x vector %f secs\n", longest_time);
   }
 
   MPI_Finalize();
