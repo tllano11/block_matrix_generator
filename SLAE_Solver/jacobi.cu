@@ -2,7 +2,7 @@
 
 using namespace solver;
 
-__device__ long double jacobi::abs(long double number) {
+__device__ double jacobi::abs(double number) {
   if (number < 0) {
     return -number;
   } else {
@@ -21,12 +21,12 @@ __device__ long double jacobi::abs(long double number) {
    @param n           Coefficient matrix size.
    @param rel         Relaxation coefficient.
 */
-__global__ void jacobi::solve(long double* A, long double* b,
-			      long double* x_c, long double* x_n,
+__global__ void jacobi::solve(double* A, double* b,
+			      double* x_c, double* x_n,
 			      uint32_t n, float rel) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
-    long double sigma = 0;
+    double sigma = 0;
     //Indicates which row must be computed by the current thread.
     uint32_t index = idx * n;
     for (uint32_t j = 0; j < n; ++j) {
@@ -36,7 +36,7 @@ __global__ void jacobi::solve(long double* A, long double* b,
       }
     }
     x_n[idx] = (b[idx] - sigma) / A[index + idx];
-    x_n[idx] = (long double)rel * x_n[idx] + (long double)(1 - rel) * x_c[idx];
+    x_n[idx] = (double)rel * x_n[idx] + (double)(1 - rel) * x_c[idx];
   }
 }
 
@@ -53,8 +53,8 @@ __global__ void jacobi::solve(long double* A, long double* b,
 
    @return None
 */
-__global__ void jacobi::compute_error (long double* x_c, long double* x_n,
-				       long double* x_e, uint32_t n) {
+__global__ void jacobi::compute_error (double* x_c, double* x_n,
+				       double* x_e, uint32_t n) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
     x_e[idx] = abs(x_n[idx] - x_c[idx]);

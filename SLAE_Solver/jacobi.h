@@ -7,14 +7,14 @@
 
 namespace solver {
   namespace jacobi {
-    __device__ long double abs(long double number);
+    __device__ double abs(double number);
 
-    __global__ void solve(long double* A, long double* b,
-			  long double* x_c, long double* x_n,
+    __global__ void solve(double* A, double* b,
+			  double* x_c, double* x_n,
 			  uint32_t n, float rel);
 
-    __global__ void compute_error (long double* x_c, long double* x_n,
-				   long double* x_e, uint32_t n);
+    __global__ void compute_error (double* x_c, double* x_n,
+				   double* x_e, uint32_t n);
 
   }
 }
