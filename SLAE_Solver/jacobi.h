@@ -7,8 +7,10 @@
 
 namespace solver {
   namespace jacobi {
+    // A __device__ function can only be called from __global__ functions.
     __device__ double abs(double number);
 
+    // __global__ functions are executed in the GPU.
     __global__ void solve(double* A, double* b,
 			  double* x_c, double* x_n,
 			  uint32_t n, float rel);
