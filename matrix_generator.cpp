@@ -215,6 +215,15 @@ int main (int argc, char** argv) {
 
   delta_time = end_time - start_time;
 
+  MPI_Reduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
+
+  if(rank == MASTER){
+    printf("The longest time to produce and get x vector %f secs\n", longest_time);
+  }
+
+  MPI_Finalize();
+  return 0;
+
   if(rank == MASTER){
     int x_filename_length = filename_length + 2;
     char x_filename[x_filename_length];
@@ -282,12 +291,6 @@ int main (int argc, char** argv) {
   }
   delete[] x_vector;
   delete[] b_vector;
-
-  MPI_Allreduce(&delta_time, &longest_time, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-
-  if(rank == MASTER){
-    printf("Longest time to produce and get x vector %f secs\n", longest_time);
-  }
 
   MPI_Finalize();
   return SUCCESS;
