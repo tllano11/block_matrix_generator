@@ -63,7 +63,8 @@ void print_data(long double* A_submatrix, long rows_per_proc, long n) {
 }
 
 int main (int argc, char** argv) {
-  int opt, num_procs, rank, rows_per_iter, rows_per_proc, max_rows_per_iter, filename_length;
+  int opt, num_procs, rank, rows_per_iter, rows_per_proc, max_rows_per_iter,
+    filename_length, exit, ret_code;
   struct sysinfo mem_info;
   long cols_num, row_size;
   double mem_percentage;
@@ -76,83 +77,96 @@ int main (int argc, char** argv) {
 
   //TODO Check arguments parser
   if (rank == MASTER) {
+    exit = false;
+    ret_code = 0;
+
     if (argc < 2){
       cerr << "Not enough arguments" << endl;
-      exit(0);
-    }
-
-    while ((opt = getopt(argc, argv, "p:s:f:d:h")) != EOF) {
-      switch (opt) {
-      case 'p':
-	mem_percentage = stof(optarg);
-	break;
-      case 's':
-	cols_num = stol(optarg);
-	break;
-      case 'f':
-        filename = optarg;
-        break;
-      case 'h':
-	cout << "\nUsage:\n"
-	     << "\r\t-p <Percentage of RAM to use>\n"
-	     << "\r\t-s <Matrix (NxN) size>\n"
-	     << "\r\t-f <Output filename>\n"
-	     << "\r\t-d <delta value>\n"
-	     << endl;
-	MPI_Abort(MPI_COMM_WORLD, 0);
-	break;
-      case 'd':
-	delta = stof(optarg);
-	break;
-      case '?':
-	cerr << "Use option -h to display a help message." << endl;
-	MPI_Abort(MPI_COMM_WORLD, 0);
-	break;
-      default:
-	cerr << "Use option -h to display a help message." << endl;
-	MPI_Abort(MPI_COMM_WORLD, 0);
+      exit = true;
+      ret_code = 1;
+    } else {
+      while ((opt = getopt(argc, argv, "p:s:f:d:h")) != EOF) {
+	switch (opt) {
+	case 'p':
+	  mem_percentage = stof(optarg);
+	  break;
+	case 's':
+	  cols_num = stol(optarg);
+	  break;
+	case 'f':
+	  filename = optarg;
+	  break;
+	case 'h':
+	  cout << "\nUsage:\n"
+	       << "\r\t-p <Percentage of RAM to use>\n"
+	       << "\r\t-s <Matrix (NxN) size>\n"
+	       << "\r\t-f <Output filename>\n"
+	       << "\r\t-d <delta value>\n"
+	       << endl;
+	  exit = true;
+	  break;
+	case 'd':
+	  delta = stof(optarg);
+	  break;
+	case '?':
+	  cerr << "Use option -h to display a help message." << endl;
+	  exit = true;
+	  ret_code = 1;
+	  break;
+	default:
+	  cerr << "Use option -h to display a help message." << endl;
+	  exit = true;
+	  ret_code = 1;
+	}
       }
     }
 
-    filename_length = strlen(filename) + 1;
-    sysinfo(&mem_info);
-    double mem_to_use = mem_info.freeram * mem_percentage;
-    row_size = cols_num * sizeof(long double);
+    if (! exit) {
+      filename_length = strlen(filename) + 1;
+      sysinfo(&mem_info);
+      double mem_to_use = mem_info.freeram * mem_percentage;
+      row_size = cols_num * sizeof(long double);
 
-    /* Substract the size occupied by the x vector times the number of process,
-       because they will need it to perform the matrix multiplication of its own submatrix.*/
-    mem_to_use -= row_size * num_procs;
+      /* Substract the size occupied by the x vector times the number of process,
+	 because they will need it to perform the matrix multiplication of its own submatrix.*/
+      mem_to_use -= row_size * num_procs;
 
-    // Substract one additional row_size the allocate space for the b vector.
-    mem_to_use -= row_size;
+      // Substract one additional row_size the allocate space for the b vector.
+      mem_to_use -= row_size;
 
-    max_rows_per_iter = floor(mem_to_use /row_size);
-    rows_per_proc = floor(max_rows_per_iter / num_procs);
-    rows_per_iter = rows_per_proc * num_procs;
+      max_rows_per_iter = floor(mem_to_use /row_size);
+      rows_per_proc = floor(max_rows_per_iter / num_procs);
+      rows_per_iter = rows_per_proc * num_procs;
 #ifdef DEBUG
-    cout << string(50, '*') << endl;
-    cout << "Total RAM to use = " << mem_to_use << endl;
-    cout << "Single row size in RAM = " << row_size << endl;
-    cout << "Rows to produce per processor = " << rows_per_proc << endl;
-    cout << "Rows to produce per iteration = " << rows_per_iter << endl;
-    cout << string(50, '*') << endl;
+      cout << string(50, '*') << endl;
+      cout << "Total RAM to use = " << mem_to_use << endl;
+      cout << "Single row size in RAM = " << row_size << endl;
+      cout << "Rows to produce per processor = " << rows_per_proc << endl;
+      cout << "Rows to produce per iteration = " << rows_per_iter << endl;
+      cout << string(50, '*') << endl;
 #endif // DEBUG
 
-    if (cols_num < max_rows_per_iter) {
-      cerr << "This program is intendend to produce large matrices, "
-	   << "which can not be loaded into RAM without swapping. "
-	   << "Therefore a matrix of size " << cols_num
-	   << " is not suitable to produce given your system "
-	   << "resources." << endl;
-      MPI_Abort(MPI_COMM_WORLD, ERROR);
+      if (cols_num < max_rows_per_iter) {
+	cerr << "The matrix is too SMALL; you are trying to produce a matrix that fits in the memory" << endl;
+	exit = true;
+	ret_code = 1;
 
-    } else if (rows_per_proc < 1) {
-      cerr << "Not even a single row of a " << cols_num << "x"
-	   << cols_num << " matrix can be loaded into "
-	   << "your system RAM without swapping." << endl;
-      MPI_Abort(MPI_COMM_WORLD, ERROR);
+      } else if (rows_per_proc < 1) {
+	cerr << "The matrix is too BIG; not even one row fits in the memory " << endl;
+	exit = true;
+	ret_code = 1;
+      }
     }
   }
+
+  MPI_Bcast(&exit, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+  MPI_Bcast(&ret_code, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+
+  if (exit) {
+    MPI_Finalize();
+    return ret_code;
+  }
+
   MPI_Bcast(&row_size, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&cols_num, 1, MPI_LONG, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&rows_per_iter, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
