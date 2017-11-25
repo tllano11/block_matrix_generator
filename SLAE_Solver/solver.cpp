@@ -72,11 +72,13 @@ void solver::solve(double* A, double* b,
     std::cout << "Jacobi failed." << std::endl;
   }
 
-  cudaFree(gpu_A);
-  cudaFree(gpu_b);
-  cudaFree(gpu_x_n);
-  cudaFree(gpu_x_e);
-  cudaFree(gpu_x_c);
+  assert(cudaSuccess == cudaFree(gpu_A));
+  assert(cudaSuccess == cudaFree(gpu_b));
+  assert(cudaSuccess == cudaFree(gpu_x_n));
+  assert(cudaSuccess == cudaFree(gpu_x_e));
+  assert(cudaSuccess == cudaFree(gpu_x_c));
+  free(x_n);
+  free(x_e);
 }
 
 int main() {
