@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     ifs.seekg(0, ios::beg);
     ifs.read(result, pos);
 
-    long double* output = (long double*) result;
+    double* output = (double*) result;
 
     int row = atoi(argv[2]);
     int col = atoi(argv[3]);

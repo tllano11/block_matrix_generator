@@ -11,44 +11,18 @@ const int Tile_size = 2;
 // Compute C = A * B
 //*************************************************************
 //Kernel for shared memory/ Tiled execution
-__global__ void matrixMul(double *A, double *B, double *C, long rows, long cols){
-
-
-  __shared__ float sA[Tile_size][Tile_size];   // Tile size to store elements in shared memory
-  __shared__ float sB[Tile_size][Tile_size];
-
-  int Row = blockDim.y*blockIdx.y + threadIdx.y; //To generate ids of threads.
-  int Col = blockDim.x*blockIdx.x + threadIdx.x;
-  float Cvalue = 0.0;
-  sA[threadIdx.y][threadIdx.x] = 0.0;
-  sB[threadIdx.y][threadIdx.x] = 0.0;
-
-  for (int k = 0; k < (((cols - 1)/ Tile_size) + 1); k++){
-    if ( (Row < rows) && (threadIdx.x + (k*Tile_size)) < cols){//Copy Data to Tile from Matrix (Global Memory to Shared Memory)
-      sA[threadIdx.y][threadIdx.x] = A[(Row*cols) + threadIdx.x + (k*Tile_size)];
-    } else{
-      sA[threadIdx.y][threadIdx.x] = 0.0;
+__global__ void matrixMul(double *A, double *X, double *B, long rows, long cols){
+  int tid= threadIdx.x + blockIdx.x * blockDim.x;
+  double sum= 0;
+  if(tid < rows){
+    for(int i=0; i < cols; i++){
+      sum += X[i] * A[(i * rows) + tid];
     }
-
-    // 1 is the amount of B columns
-    if (Col < 1 && (threadIdx.y + k*Tile_size) < rows){//Copy Data to Tile from Matrix (Global Memory to Shared Memory)
-      sB[threadIdx.y][threadIdx.x] = B[(threadIdx.y + k*Tile_size) + Col];
-    } else{
-      sB[threadIdx.y][threadIdx.x] = 0.0;
-    }
-    __syncthreads();
-
-    for (int j = 0; j < Tile_size; ++j){//Multiplying Elements present in tile
-      Cvalue += sA[threadIdx.y][j] * sB[j][threadIdx.x];
-    }
-  }
-
-  if (Row < rows && Col < 1){//Saving Final result into Matrix C
-    C[Row + Col] = Cvalue;
+    B[tid]=sum;
   }
 }
 //*************************************************************
-void Print_Mat(int Row,int Col,float * Mat){//Function To print the Matrix
+void Print_Mat(int Row,int Col,double * Mat){//Function To print the Matrix
 
   for(int i=0; i < Row; ++i){
     for(int j=0; j < Col; ++j){
@@ -64,7 +38,7 @@ void matMultiplyOnHost(float * A, float * B, float * C, int numARows,
                         int numAColumns, int numBRows, int numBColumns,
                         int numCRows, int numCColumns){
   for (int i=0; i < numARows; i ++){
-    for (int j = 0; j < numAColumns; j++){
+    for (int j= 0; j < numAColumns; j++){
       C[i*numCColumns + j ] = 0.0;
       for (int k = 0; k < numCColumns; k++){
 	C[i*numCColumns + j ] += A[i*numAColumns + k] * B [k*numBColumns + j];
@@ -103,15 +77,16 @@ extern "C++" void generate_b_gpu(double *hostA, double *hostX, double *hostB, lo
   // Copy the results in GPU memory back to the CPU
   assert(cudaSuccess == cudaMemcpy(hostB, deviceB, sizeof(float)*rows, cudaMemcpyDeviceToHost));
 
-  cout << hostB[0] << endl;
+  cout << "GPU A" << endl;
+  Print_Mat(rows, cols, hostA);
 
   //matMultiplyOnHost(hostA, hostB, hostComputedC, numARows, numAColumns, numBRows, numBColumns, numCRows, numCColumns);
 
   //printf("\nMatrix C From Host\n");
   //Print_Mat(numCRows,numCColumns,hostComputedC);//Function Call
 
-  printf("\n Number of Blocks Created:%d \n",((1/Tile_size) + 1)*((1/Tile_size) + 1));
-  printf("\n Number of Threads Per Block: %d \n",(Tile_size*Tile_size));
+  //printf("\n Number of Blocks Created:%d \n",((1/Tile_size) + 1)*((1/Tile_size) + 1));
+  //printf("\n Number of Threads Per Block: %d \n",(Tile_size*Tile_size));
 
   // Free the GPU memory
   assert(cudaSuccess == cudaFree(deviceA));

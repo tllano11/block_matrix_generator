@@ -16,11 +16,11 @@
 
 using namespace std;
 
-void fill_with_random(long double* A_submatrix, long rows_per_proc, long cols_num, long inital_row, long double delta) {
+void fill_with_random(double* A_submatrix, long rows_per_proc, long cols_num, long inital_row, double delta) {
   random_device rd;
   mt19937_64 mt(rd());
-  uniform_real_distribution<long double> urd(-cols_num, cols_num);
-  long double accum;
+  uniform_real_distribution<double> urd(-cols_num, cols_num);
+  double accum;
 
   for (long i = 0; i < rows_per_proc; ++i) {
     accum = 0;
@@ -28,23 +28,23 @@ void fill_with_random(long double* A_submatrix, long rows_per_proc, long cols_nu
       A_submatrix[i * cols_num + j] = urd(mt);
       accum += abs(A_submatrix[i * cols_num + j]);
     }
-    long double* diagonal = &A_submatrix[i * cols_num + inital_row];
+    double* diagonal = &A_submatrix[i * cols_num + inital_row];
     *diagonal = accum - *diagonal + delta;
     inital_row++;
   }
 }
 
-void generate_x_vector(long double* x_vector, int n){
+void generate_x_vector(double* x_vector, int n){
   random_device rd;
   mt19937_64 mt(rd());
-  uniform_real_distribution<long double> urd(-n, n);
+  uniform_real_distribution<double> urd(-n, n);
 
   for(int i = 0; i < n; ++i){
     x_vector[i] = urd(mt);
   }
 }
 
-void generate_b_subvector(long double* b_subvector, long double* A_submatrix, long double* x_vector, long cols_num, long rows_per_proc){
+void generate_b_subvector(double* b_subvector, double* A_submatrix, double* x_vector, long cols_num, long rows_per_proc){
   for(long i = 0; i < rows_per_proc; ++i){
     b_subvector[i] = 0;
     for(long j = 0; j < cols_num; ++j){
@@ -53,7 +53,7 @@ void generate_b_subvector(long double* b_subvector, long double* A_submatrix, lo
   }
 }
 
-void print_data(long double* A_submatrix, long rows_per_proc, long n) {
+void print_data(double* A_submatrix, long rows_per_proc, long n) {
   for (long i = 0; i < rows_per_proc; ++i) {
     for (long j = 0; j < n; ++j){
       cout << A_submatrix[i * n + j] << " ";
@@ -62,13 +62,15 @@ void print_data(long double* A_submatrix, long rows_per_proc, long n) {
   }
 }
 
+void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long rows);
+
 int main (int argc, char** argv) {
   int opt, num_procs, rank, rows_per_iter, rows_per_proc, max_rows_per_iter,
     filename_length, exit, ret_code;
   struct sysinfo mem_info;
   long cols_num, row_size;
   double mem_percentage;
-  long double delta;
+  double delta;
   char* filename;
 
   MPI_Init(&argc, &argv);
@@ -125,7 +127,7 @@ int main (int argc, char** argv) {
       filename_length = strlen(filename) + 1;
       sysinfo(&mem_info);
       double mem_to_use = mem_info.freeram * mem_percentage;
-      row_size = cols_num * sizeof(long double);
+      row_size = cols_num * sizeof(double);
 
       /* Substract the size occupied by the x vector times the number of process,
 	 because they will need it to perform the matrix multiplication of its own submatrix.*/
@@ -172,7 +174,7 @@ int main (int argc, char** argv) {
   MPI_Bcast(&rows_per_iter, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&rows_per_proc, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
   MPI_Bcast(&filename_length, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
-  MPI_Bcast(&delta, 1, MPI_LONG_DOUBLE, MASTER, MPI_COMM_WORLD);
+  MPI_Bcast(&delta, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
   if (rank != MASTER){
     filename = new char[filename_length];
@@ -206,19 +208,19 @@ int main (int argc, char** argv) {
   long final_it_row;
   long long rows_per_iter_size;
   long A_submatrix_size = rows_per_proc * cols_num;
-  long double* A_submatrix = new long double[ A_submatrix_size ];
-  long double* b_subvector = new long double[ rows_per_proc];
+  double* A_submatrix = new double[ A_submatrix_size ];
+  double* b_subvector = new double[ rows_per_proc ];
 
   double start_time, end_time, delta_time, longest_time;
 
-  A_offset = (long long)rank * (long long)sizeof(long double) * (long long)A_submatrix_size;
-  b_offset = (long long)rank * (long long)sizeof(long double) * (long long)rows_per_proc;
+  A_offset = (long long)rank * (long long)sizeof(double) * (long long)A_submatrix_size;
+  b_offset = (long long)rank * (long long)sizeof(double) * (long long)rows_per_proc;
 
   MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &A_file);
   MPI_File_open(MPI_COMM_WORLD, b_filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &b_file);
 
   start_time = MPI_Wtime();
-  long double* x_vector = new long double[ cols_num ];
+  double* x_vector = new double[ cols_num ];
 
   int pos_by_proc = round(cols_num/(double)num_procs);
   //int initial_pos = rank * pos_by_proc;
@@ -237,12 +239,12 @@ int main (int argc, char** argv) {
 
   //printf("Rank: %d pos_proc: %d init_pos: %d\n", rank, recvcounts[rank], displacements[rank]);
 
-  long double* x_subvector = new long double[ recvcounts[rank] ];
+  double* x_subvector = new double[ recvcounts[rank] ];
 
   generate_x_vector(x_subvector, recvcounts[rank]);
   //print_data(x_subvector, recvcounts[rank], 1);
 
-  MPI_Allgatherv(x_subvector, recvcounts[rank], MPI_LONG_DOUBLE, x_vector, recvcounts, displacements, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgatherv(x_subvector, recvcounts[rank], MPI_DOUBLE, x_vector, recvcounts, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
   end_time = MPI_Wtime();
 
   delta_time = end_time - start_time;
@@ -254,7 +256,7 @@ int main (int argc, char** argv) {
     strcat(x_filename, filename);
 
     if(FILE* f1 = fopen(x_filename, "wb")) {
-      fwrite(x_vector, sizeof(long double), cols_num, f1);
+      fwrite(x_vector, sizeof(double), cols_num, f1);
       fclose(f1);
     }
     //print_data(x_vector, cols_num, 1);
@@ -279,19 +281,17 @@ int main (int argc, char** argv) {
       final_it_row = cols_num;
       rows_per_proc = final_it_row - initial_it_row;
       A_submatrix_size = cols_num * rows_per_proc;
-      A_submatrix = new long double[A_submatrix_size];
+      A_submatrix = new double[A_submatrix_size];
     }
 
     fill_with_random(A_submatrix, rows_per_proc, cols_num, initial_it_row, delta);
     //print_data(A_submatrix, rows_per_proc, cols_num);
 
-    generate_b_subvector(b_subvector, A_submatrix, x_vector, cols_num, rows_per_proc);
+    //generate_b_subvector(b_subvector, A_submatrix, x_vector, cols_num, rows_per_proc);
+    generate_b_gpu(A_submatrix, x_vector, b_subvector, cols_num, rows_per_proc);
 
-    //cout << string(50, '*') << endl;
-    //print_data(b_subvector, rows_per_proc, 1);
-
-    MPI_File_write(A_file, A_submatrix, A_submatrix_size, MPI_LONG_DOUBLE, &A_status);
-    MPI_File_write(b_file, b_subvector, rows_per_proc, MPI_LONG_DOUBLE, &b_status);
+    MPI_File_write(A_file, A_submatrix, A_submatrix_size, MPI_DOUBLE, &A_status);
+    MPI_File_write(b_file, b_subvector, rows_per_proc, MPI_DOUBLE, &b_status);
 
 #ifdef DEBUG
     MPI_File_get_position(A_file, &A_current_offset);
@@ -299,7 +299,7 @@ int main (int argc, char** argv) {
 #endif //DEBUG
 
     initial_it_row += rows_per_iter;
-    rows_per_iter_size = (long long)rows_per_iter * (long long)sizeof(long double);
+    rows_per_iter_size = (long long)rows_per_iter * (long long)sizeof(double);
     A_offset += rows_per_iter_size * (long long)cols_num;
     b_offset += rows_per_iter_size;
   }
