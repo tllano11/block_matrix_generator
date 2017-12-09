@@ -1,4 +1,12 @@
-#include "gpu_mul.h"
+#include <stdio.h>
+#include <cuda.h>
+#include <stdlib.h>
+#include <cassert>
+#include <iostream>
+
+using namespace std;
+
+const int Tile_size = 2;
 
 // Compute C = A * B
 //*************************************************************
@@ -23,7 +31,7 @@ __global__ void matrixMul(double *A, double *B, double *C, long rows, long cols)
     }
 
     // 1 is the amount of B columns
-    if ( Col < 1 && (threadIdx.y + k*Tile_size) < rows){//Copy Data to Tile from Matrix (Global Memory to Shared Memory)
+    if (Col < 1 && (threadIdx.y + k*Tile_size) < rows){//Copy Data to Tile from Matrix (Global Memory to Shared Memory)
       sB[threadIdx.y][threadIdx.x] = B[(threadIdx.y + k*Tile_size) + Col];
     } else{
       sB[threadIdx.y][threadIdx.x] = 0.0;
@@ -63,10 +71,9 @@ void matMultiplyOnHost(float * A, float * B, float * C, int numARows,
       }
     }
   }
-  return;
 }
 //*************************************************************
-void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long rows) {
+extern "C++" void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long rows) {
 
   double *deviceA;
   double *deviceB;
@@ -75,11 +82,11 @@ void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long
   // Allocating GPU memory
   assert(cudaSuccess == cudaMalloc((void **)&deviceA, sizeof(double)*cols*rows));
   assert(cudaSuccess == cudaMalloc((void **)&deviceB, sizeof(double)*rows));
-  assert(cudaSuccess == cudaMalloc((void **)&deviceC, sizeof(double)*rows));
+  assert(cudaSuccess == cudaMalloc((void **)&deviceX, sizeof(double)*rows));
 
     // Copy memory to the GPU
   assert(cudaSuccess == cudaMemcpy(deviceA, hostA, sizeof(double)*cols*rows, cudaMemcpyHostToDevice));
-  assert(cudaSuccess == cudaMemcpy(deviceB, hostB, sizeof(float)*rows, cudaMemcpyHostToDevice));
+  assert(cudaSuccess == cudaMemcpy(deviceX, hostX, sizeof(float)*rows, cudaMemcpyHostToDevice));
 
   // Initialize the grid and block dimensions
 
@@ -111,9 +118,7 @@ void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long
   assert(cudaSuccess == cudaFree(deviceB));
   assert(cudaSuccess == cudaFree(deviceX));
   //Free the Pointer Memory
-  free(hostA);
-  free(hostB);
-  free(hostX);
-
-  return 0;
+  //free(hostA);
+  //free(hostB);
+  //free(hostX);
 }
