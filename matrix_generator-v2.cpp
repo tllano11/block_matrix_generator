@@ -9,6 +9,7 @@
 #include<cmath>
 #include<sys/sysinfo.h>
 #include<cstring>
+//#include "solver.h"
 
 #define ERROR 1
 #define SUCCESS 0
@@ -61,6 +62,10 @@ void print_data(double* A_submatrix, long rows_per_proc, long n) {
     cout << endl;
   }
 }
+
+void solve(double* A, double* b, int matrix_size,
+		   int vector_size, uint32_t niter,
+	   float tol, float rel);
 
 void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long rows);
 
@@ -287,8 +292,10 @@ int main (int argc, char** argv) {
     fill_with_random(A_submatrix, rows_per_proc, cols_num, initial_it_row, delta);
     //print_data(A_submatrix, rows_per_proc, cols_num);
 
-    //generate_b_subvector(b_subvector, A_submatrix, x_vector, cols_num, rows_per_proc);
-    generate_b_gpu(A_submatrix, x_vector, b_subvector, cols_num, rows_per_proc);
+    generate_b_subvector(b_subvector, A_submatrix, x_vector, cols_num, rows_per_proc);
+    //generate_b_gpu(A_submatrix, x_vector, b_subvector, cols_num, rows_per_proc);
+
+    solve(A_submatrix, b_subvector, cols_num * rows_per_proc, cols_num, 1000, 0.0001, 1);
 
     MPI_File_write(A_file, A_submatrix, A_submatrix_size, MPI_DOUBLE, &A_status);
     MPI_File_write(b_file, b_subvector, rows_per_proc, MPI_DOUBLE, &b_status);

@@ -1,5 +1,4 @@
-#ifndef JACOBI_H
-#define JACOBI_H
+#pragma once
 
 #include<stdint.h>
 #include<stdlib.h>
@@ -20,4 +19,3 @@ namespace solver {
 
   }
 }
-#endif /* JACOBI_H */
