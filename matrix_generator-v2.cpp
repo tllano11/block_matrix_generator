@@ -45,7 +45,8 @@ void generate_x_vector(double* x_vector, int n){
   }
 }
 
-void generate_b_subvector(double* b_subvector, double* A_submatrix, double* x_vector, long cols_num, long rows_per_proc){
+void generate_b_subvector(double* b_subvector, double* A_submatrix, double* x_vector,
+			  long cols_num, long rows_per_proc){
   for(long i = 0; i < rows_per_proc; ++i){
     b_subvector[i] = 0;
     for(long j = 0; j < cols_num; ++j){
@@ -64,10 +65,10 @@ void print_data(double* A_submatrix, long rows_per_proc, long n) {
 }
 
 void solve(double* A, double* b, int matrix_size,
-		   int vector_size, uint32_t niter,
+	   int vector_size, int niter,
 	   float tol, float rel);
 
-void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long rows);
+//void generate_b_gpu(double *hostA, double *hostX, double *hostB, long cols, long rows);
 
 int main (int argc, char** argv) {
   int opt, num_procs, rank, rows_per_iter, rows_per_proc, max_rows_per_iter,

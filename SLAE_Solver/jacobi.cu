@@ -1,8 +1,6 @@
 #include "jacobi.h"
 
-using namespace solver;
-
-__device__ double jacobi::abs(double number) {
+__device__ double gpu_abs(double number) {
   if (number < 0) {
     return -number;
   } else {
@@ -21,7 +19,7 @@ __device__ double jacobi::abs(double number) {
    @param n           Coefficient matrix size.
    @param rel         Relaxation coefficient.
 */
-__global__ void jacobi::solve(double* A, double* b,
+__global__ void solve(double* A, double* b,
 			      double* x_c, double* x_n,
 			      uint32_t n, float rel) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -53,10 +51,10 @@ __global__ void jacobi::solve(double* A, double* b,
 
    @return None
 */
-__global__ void jacobi::compute_error (double* x_c, double* x_n,
+__global__ void compute_error(double* x_c, double* x_n,
 				       double* x_e, uint32_t n) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
-    x_e[idx] = abs(x_n[idx] - x_c[idx]);
+    x_e[idx] = gpu_abs(x_n[idx] - x_c[idx]);
   }
 }
