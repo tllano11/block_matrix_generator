@@ -23,20 +23,22 @@ __device__ double jacobi::abs(double number) {
 */
 __global__ void jacobi::solve(double* A, double* b,
 			      double* x_c, double* x_n,
-			      uint32_t n, float rel) {
+			      uint32_t rows, uint32_t cols,
+			      uint32_t first_row_block, double rel) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
+  uint32_t current_row = first_row_block + idx;
+  if (idx < rows) {
     double sigma = 0;
     //Indicates which row must be computed by the current thread.
-    uint32_t index = idx * n;
-    for (uint32_t j = 0; j < n; ++j) {
+    uint32_t index = idx * cols;
+    for (uint32_t j = 0; j < cols; ++j) {
       //Ensures not to use a diagonal value when computing.
-      if (idx != j) {
+      if (current_row != j) {
 	sigma += A[index + j] * x_c[j];
       }
     }
-    x_n[idx] = (b[idx] - sigma) / A[index + idx];
-    x_n[idx] = (double)rel * x_n[idx] + (double)(1 - rel) * x_c[idx];
+    x_n[idx] = (b[idx] - sigma) / A[index + current_row];
+    x_n[idx] = rel * x_n[idx] + (double)(1.0 - rel) * x_c[idx];
   }
 }
 
