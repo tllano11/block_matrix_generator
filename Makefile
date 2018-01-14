@@ -13,6 +13,13 @@ SRC_GPU_MUL = gpu_mul
 SRC_GPU_JACOBI = jacobi
 SRC_SOLVER = solver
 
+# all: library.cpp main.cpp
+# In this case:
+#
+# $@ evaluates to all
+# $< evaluates to library.cpp
+# $^ evaluates to library.cpp main.cpp
+
 all: init $(TARGET)
 
 debug: CXXFLAGS += $(DEBUG)
@@ -39,3 +46,4 @@ init:
 clean:
 	rm -f *~ *.o $(TARGET)
 	rm -rf $(OUT_PATH)
+
