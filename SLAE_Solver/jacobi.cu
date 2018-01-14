@@ -1,8 +1,4 @@
-#include "jacobi.h"
-
-using namespace solver;
-
-__device__ double jacobi::abs(double number) {
+__device__ double abs(double number) {
   if (number < 0) {
     return -number;
   } else {
@@ -21,7 +17,7 @@ __device__ double jacobi::abs(double number) {
    @param n           Coefficient matrix size.
    @param rel         Relaxation coefficient.
 */
-__global__ void jacobi::solve(double* A, double* b,
+__global__ void run_jacobi(double* A, double* b,
 			      double* x_c, double* x_n,
 			      uint32_t rows, uint32_t cols,
 			      uint32_t first_row_block, double rel) {
@@ -55,7 +51,7 @@ __global__ void jacobi::solve(double* A, double* b,
 
    @return None
 */
-__global__ void jacobi::compute_error (double* x_c, double* x_n,
+__global__ void compute_error (double* x_c, double* x_n,
 				       double* x_e, uint32_t n) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
