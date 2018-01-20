@@ -94,25 +94,20 @@ void barrier(){
 }
 
 void generate_system(int rows_per_thread, int number_threads, int thread_id){
-  //stringstream ss;
-  //ss << this_thread::get_id();
-  //int thread_id = stoull(ss.str());
-  int initial_row = thread_id * rows_per_thread;
+  int initial_thread_row = thread_id * rows_per_thread;
   if(thread_id == number_threads - 1){
-    rows_per_thread = rows_A - initial_row;
+    rows_per_thread = rows_A - initial_thread_row;
   }
   print_mutex.lock();
-  cout << "thread_id: " << thread_id << " initial_row: " << initial_row << " rows_per_thread: " << rows_per_thread << endl;
+  cout << "thread_id: " << thread_id << " initial_thread_row: " << initial_thread_row << " rows_per_thread: " << rows_per_thread << endl;
   print_mutex.unlock();
-  double *A_ptr_local = A_ptr + thread_id * rows_per_thread * cols_A;
-  generate_A(A_ptr_local, rows_per_thread, initial_row);
-  double *x_ptr_local = x_ptr + thread_id * rows_per_thread;
+  double *A_ptr_local = A_ptr + initial_thread_row * cols_A;
+  generate_A(A_ptr_local, rows_per_thread, initial_thread_row);
+  double *x_ptr_local = x_ptr + initial_thread_row;
   generate_x(x_ptr_local, rows_per_thread);
   barrier();
-  double *b_ptr_local = b_ptr + thread_id * rows_per_thread;
-  print_mutex.lock();
+  double *b_ptr_local = b_ptr + initial_thread_row;
   generate_b(b_ptr_local, A_ptr_local, rows_per_thread);
-  print_mutex.unlock();
 }
 
 int main(int argc, char** argv){
