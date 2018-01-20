@@ -40,7 +40,7 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
   }
 }
 
-void solve(double* A, double* b, uint32_t niter, float tol){
+void solve(double* A, double* b, uint32_t niter, double tol){
   int A_slots = rows * cols;
   bpg = cols + (tpb - 1) / tpb;
 
