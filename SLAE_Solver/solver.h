@@ -5,17 +5,17 @@
 #include <algorithm>
 #include <iostream>
 #include <cuda_runtime_api.h>
+#include <cublas_v2.h>
 //#include "jacobi.h"
 
-namespace solver {
-  template <class T> T* cuda_allocate (int size);
+extern int rows, cols;
+extern float rel;
+int bpg;
 
-  template <class T> T* to_device(T* src, int size);
+template <class T> T* cuda_allocate (int size);
 
-  extern "C++" void solve(double* A, double* b,
-	     int matrix_size, int vector_size,
-	     double* x_c, uint32_t niter,
-	     float tol, float rel);
+template <class T> T* to_device(T* src, int size);
 
-  void print_data(double* matrix, long rows, long cols);
-}
+void solve(double* A, double* b, uint32_t niter, float tol);
+
+void print_data(double* matrix, long rows, long cols);
