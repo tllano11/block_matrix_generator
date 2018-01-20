@@ -7,10 +7,8 @@
 #include<getopt.h>
 #include<cmath>
 #include<sys/sysinfo.h>
-#include<cstring>
 #include<thread>
 #include<math.h>
-#include<sstream>
 #include<mutex>
 #include<condition_variable>
 //#include "solver.h"
@@ -21,7 +19,7 @@
 
 using namespace std;
 
-double *A_ptr, *x_ptr, *b_ptr; 
+double *A_ptr, *x_ptr, *b_ptr;
 int rows_A, cols_A, vector_size, delta, thread_counter;
 mutex print_mutex, mult_mutex, mtx;
 condition_variable cv;
@@ -98,9 +96,9 @@ void generate_system(int rows_per_thread, int number_threads, int thread_id){
   if(thread_id == number_threads - 1){
     rows_per_thread = rows_A - initial_thread_row;
   }
-  print_mutex.lock();
+  /*print_mutex.lock();
   cout << "thread_id: " << thread_id << " initial_thread_row: " << initial_thread_row << " rows_per_thread: " << rows_per_thread << endl;
-  print_mutex.unlock();
+  print_mutex.unlock();*/
   double *A_ptr_local = A_ptr + initial_thread_row * cols_A;
   generate_A(A_ptr_local, rows_per_thread, initial_thread_row);
   double *x_ptr_local = x_ptr + initial_thread_row;
@@ -119,40 +117,43 @@ int main(int argc, char** argv){
   //TODO Check arguments parser
   if(argc < 2){
     cerr << "Not enough arguments" << endl;
+    return 1;
   }else{
     while ((opt = getopt(argc, argv, "s:f:d:t:h")) != EOF) {
       switch (opt) {
-        case 's':
-	        cols_A = stoi(optarg);
-	        rows_A = stoi(optarg);
-	        vector_size = stoi(optarg);
-	        break;
-        case 'f':
-	        filename = optarg;
-	        break;
-        case 't':
-          number_threads = stoi(optarg);
-          thread_counter = stoi(optarg);
-         break;
-        case 'h':
-        	cout << "\nUsage:\n"
-	             << "\r\t-t <Number of threads>\n"
-	             << "\r\t-s <Matrix (NxN) size>\n"
-	             << "\r\t-f <Output filename>\n"
-	             << "\r\t-d <delta value>\n"
-	             << endl;
-	        break;
-        case 'd':
-	        delta = stof(optarg);
-	        break;
-        case '?':
-	        cerr << "Use option -h to display a help message." << endl;
-	        break;
-       default:
-	        cerr << "Use option -h to display a help message." << endl;
+      case 's':
+	cols_A = stoi(optarg);
+	rows_A = stoi(optarg);
+	vector_size = stoi(optarg);
+	break;
+      case 'f':
+	filename = optarg;
+	break;
+      case 't':
+	number_threads = stoi(optarg);
+	thread_counter = stoi(optarg);
+	break;
+      case 'h':
+	cout << "\nUsage:\n"
+	     << "\r\t-t <Number of threads>\n"
+	     << "\r\t-s <Matrix (NxN) size>\n"
+	     << "\r\t-f <Output filename>\n"
+	     << "\r\t-d <delta value>\n"
+	     << endl;
+	return 0;
+      case 'd':
+	delta = stof(optarg);
+	break;
+      case '?':
+	cerr << "Use option -h to display a help message." << endl;
+	return 1;
+      default:
+	cerr << "Use option -h to display a help message." << endl;
+	return 1;
       }
     }
-  }    
+  }
+
   A_ptr = new double[rows_A * cols_A];
   b_ptr = new double[vector_size];
   x_ptr = new double[vector_size];
@@ -166,10 +167,17 @@ int main(int argc, char** argv){
   for(int i = 0; i < number_threads; i++){
     system_threads[i].join();
   }
+
+  cout << string(50, '*') << endl;
   cout << "Matrix A: " << endl;
+  cout << string(50, '*') << endl;
   print_data(A_ptr, rows_A, cols_A);
+  cout << string(50, '*') << endl;
   cout << "Vector x: " << endl;
+  cout << string(50, '*') << endl;
   print_data(x_ptr, vector_size, 1);
+  cout << string(50, '*') << endl;
   cout << "Vector b: " << endl;
+  cout << string(50, '*') << endl;
   print_data(b_ptr, vector_size, 1);
 }
