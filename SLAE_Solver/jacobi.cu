@@ -1,3 +1,5 @@
+#include "jacobi.h"
+
 __device__ double abs(double number) {
   if (number < 0) {
     return -number;
@@ -18,9 +20,9 @@ __device__ double abs(double number) {
    @param rel         Relaxation coefficient.
 */
 __global__ void run_jacobi(double* A, double* b,
-			      double* x_c, double* x_n,
-			      uint32_t rows, uint32_t cols,
-			      uint32_t first_row_block, double rel) {
+			   double* x_c, double* x_n,
+			   uint32_t rows, uint32_t cols,
+			   uint32_t first_row_block, double rel) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   uint32_t current_row = first_row_block + idx;
   if (idx < rows) {
@@ -52,7 +54,7 @@ __global__ void run_jacobi(double* A, double* b,
    @return None
 */
 __global__ void compute_error (double* x_c, double* x_n,
-				       double* x_e, uint32_t n) {
+			       double* x_e, uint32_t n) {
   uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
     x_e[idx] = abs(x_n[idx] - x_c[idx]);

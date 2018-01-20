@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
-//#include "jacobi.h"
+#include "jacobi.h"
 
 extern int rows, cols;
 extern double rel;
