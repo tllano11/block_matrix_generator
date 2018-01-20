@@ -1,7 +1,12 @@
 #include "solver.h"
-#include "jacobi.h"
 
 using namespace std;
+
+const int double_size = sizeof(double);
+// Number of vectors, besides A, to allocate GPU memory to
+const int gpu_vector_count = 4;
+// Threads per block
+const int  tpb = 32;
 
 template <class T> T* cuda_allocate (int size) {
   T* device_ptr;
@@ -14,66 +19,89 @@ template <class T> T* to_device(T* src, int size) {
   assert(cudaSuccess == cudaMemcpy(dst, src, size*sizeof(T), cudaMemcpyHostToDevice));
   return dst;
 }
-/*
-void print_data(double* matrix, long rows, long cols) {
-  for (long i = 0; i < rows; ++i) {
-    for (long j = 0; j < cols; ++j){
-      cout << matrix[i * cols + j] << " ";
+
+void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
+		   double* gpu_x_c, double* gpu_x_n, double* gpu_x_e,
+		   int rows_gpu, int total_iters) {
+  double* A_ptr = A;
+  int shift;
+  for (int i = 0; i < total_iters; ++i) {
+    A_ptr = A_ptr + i * rows_gpu * cols;
+    if (i == total_iters - 1) {
+      rows_gpu = rows - i * rows_gpu;
     }
-    cout << endl;
+    assert(cudaSuccess == cudaMemcpy(gpu_A, A_ptr, rows_gpu*cols*double_size, cudaMemcpyHostToDevice));
+    run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b, gpu_x_c, gpu_x_n, cols, rel);
+    shift = i * rows_gpu;
+    compute_error <<< bpg, tpb >>> (gpu_x_n + shift,
+				    gpu_x_c + shift,
+				    gpu_x_e + shift,
+				    rows_gpu);
   }
-}*/
+}
 
-extern "C++" void solve(double* A, double* b, int matrix_size,
-		   int vector_size, int niter,
-		   float tol, float rel){
-
-  int tpb = 32;
-  int bpg = matrix_size + (tpb - 1) / tpb;
+void solve(double* A, double* b, uint32_t niter, double tol){
+  int A_slots = rows * cols;
+  bpg = cols + (tpb - 1) / tpb;
 
   // Pointers to host memory
-  double* x_c = new double[vector_size]; // x current
-  double* x_n = new double[vector_size]; // x next
-  double* x_e = new double[vector_size]; // x error
+  double* x_c = new double[cols]; // x current
 
-  for(int i = 0; i < vector_size; ++i){
+  // Initialize the current solution to whatever value (zero in this case)
+  // is necessary to overwrite any junk data present in the memory space
+  // allocated for gpu_x_c
+  for(int i = 0; i < cols; ++i){
     x_c[i] = 0;
   }
 
-  // Pointers to GPU memory
-  double* gpu_x_c = to_device<double>(x_c, vector_size); // x current
-  double* gpu_x_n = cuda_allocate<double>(vector_size); // x next
-  double* gpu_x_e = cuda_allocate<double>(vector_size); // x error
-  double* gpu_A = to_device<double>(A, matrix_size);
-  double* gpu_b = to_device<double>(b, vector_size);
-  // Control whether the algorithm fails or succeeds
-  int count = 0;
-  float error = tol + 1;
+  cudaDeviceProp props;
+  cudaGetDeviceProperties(&props, 0);
+  int gpu_mem = props.totalGlobalMem;
+  int gpu_mem_for_A = gpu_mem - (gpu_vector_count * cols) - double_size;
+  // Max rows to allocate for A
+  int rows_gpu = gpu_mem_for_A / cols;
 
-  while ( (error > tol) && (count < niter) ) {
+  // Pointers to GPU memory
+  double* gpu_x_c = to_device<double>(x_c, cols);
+  double* gpu_x_n = cuda_allocate<double>(cols);
+  double* gpu_x_e = cuda_allocate<double>(cols);
+  double* gpu_max_err = cuda_allocate<double>(1);
+  double* gpu_A = cuda_allocate<double>(rows_gpu);
+  double* gpu_b = to_device<double>(b, cols);
+  double* max_err_gpu = cuda_allocate<double>(1);
+
+  // Initialize cublas
+  cublasHandle_t handle;
+  cublasCreate(&handle);
+
+  // Control whether the algorithm fails or succeeds
+  uint32_t count = 0;
+  double error = tol + 1;
+  double* max_err = &error;
+
+  int total_iters = ceil(rows/rows_gpu);
+
+  while ( (*max_err > tol) && (count < niter) ) {
     if (count % 2) {
-      solve <<< bpg, tpb >>> (gpu_A, gpu_b, gpu_x_n, gpu_x_c, vector_size, rel);
-      compute_error <<< bpg, tpb >>> (gpu_x_c, gpu_x_n, gpu_x_e, vector_size);
+      launch_jacobi(A, gpu_A, gpu_b, gpu_x_c, gpu_x_n, gpu_x_e, rows_gpu, total_iters);
     } else {
-      solve <<< bpg, tpb >>> (gpu_A, gpu_b, gpu_x_c, gpu_x_n, vector_size, rel);
-      compute_error <<< bpg, tpb >>> (gpu_x_n, gpu_x_c, gpu_x_e, vector_size);
+      launch_jacobi(A, gpu_A, gpu_b, gpu_x_n, gpu_x_c, gpu_x_e, rows_gpu, total_iters);
     }
-    assert(cudaSuccess == cudaMemcpy(x_e, gpu_x_e, vector_size*sizeof(double), cudaMemcpyDeviceToHost));
-    error = (float) *(max_element(x_e, x_e + vector_size));
+    assert(CUBLAS_STATUS_SUCCESS == cublasIsamax(handle, cols, gpu_x_e, 1, max_err_gpu));
+    assert(cudaSuccess == cudaMemcpy(max_err, max_err_gpu, double_size, cudaMemcpyDeviceToHost));
     count++;
   }
 
-  if (error < tol) {
+  if (*max_err < tol) {
     if (count % 2) {
-      assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_n, vector_size*sizeof(double), cudaMemcpyDeviceToHost));
+      assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_n, cols*double_size, cudaMemcpyDeviceToHost));
     } else {
-      assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_c, vector_size*sizeof(double), cudaMemcpyDeviceToHost));
+      assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_c, cols*double_size, cudaMemcpyDeviceToHost));
     }
-    cout << "Jacobi succeeded in " << count << " iterations with an error of "
-	      << error << endl;
-    print_data(x_c, 3 , 1);
+    std::cout << "Jacobi succeeded in " << count << " iterations with an error of "
+	      << *max_err << std::endl;
   } else {
-    cout << "Jacobi failed." << endl;
+    std::cout << "Jacobi failed." << std::endl;
   }
 
   assert(cudaSuccess == cudaFree(gpu_A));
@@ -81,6 +109,7 @@ extern "C++" void solve(double* A, double* b, int matrix_size,
   assert(cudaSuccess == cudaFree(gpu_x_n));
   assert(cudaSuccess == cudaFree(gpu_x_e));
   assert(cudaSuccess == cudaFree(gpu_x_c));
+  cublasDestroy(handle);
   delete[] x_n;
   delete[] x_e;
   delete[] x_c;
