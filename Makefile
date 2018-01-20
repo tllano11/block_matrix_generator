@@ -1,7 +1,7 @@
 MPICXX = mpicxx
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall
-CUDAFLAGS = -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
+CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
 LDFLAGS = -I./SLAE_Solver
 NVCCFLAGS = -x cu -Wno-deprecated-gpu-targets -Xcompiler -fPIC -std=c++11
 NVCC = nvcc
