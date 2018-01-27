@@ -1,7 +1,7 @@
 MPICXX = mpicxx
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall
-CUDAFLAGS = -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
+CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
 LDFLAGS = -I./SLAE_Solver
 NVCCFLAGS = -x cu -Wno-deprecated-gpu-targets -Xcompiler -fPIC -std=c++11
 NVCC = nvcc
@@ -12,6 +12,13 @@ SRC_GEN = matrix_generator-v2
 SRC_GPU_MUL = gpu_mul
 SRC_GPU_JACOBI = jacobi
 SRC_SOLVER = solver
+
+# all: library.cpp main.cpp
+# In this case:
+#
+# $@ evaluates to all
+# $< evaluates to library.cpp
+# $^ evaluates to library.cpp main.cpp
 
 all: init $(TARGET)
 
@@ -39,3 +46,4 @@ init:
 clean:
 	rm -f *~ *.o $(TARGET)
 	rm -rf $(OUT_PATH)
+
