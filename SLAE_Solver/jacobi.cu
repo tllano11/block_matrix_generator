@@ -1,6 +1,6 @@
 #include "jacobi.h"
 
-__device__ double abs(double number) {
+__device__ double gpu_abs(double number) {
   if (number < 0) {
     return -number;
   } else {
@@ -21,15 +21,15 @@ __device__ double abs(double number) {
 */
 __global__ void run_jacobi(double* A, double* b,
 			   double* x_c, double* x_n,
-			   uint32_t rows, uint32_t cols,
-			   uint32_t first_row_block, double rel) {
-  uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  uint32_t current_row = first_row_block + idx;
+			   int rows, int cols,
+			   int first_row_block, double rel) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int current_row = first_row_block + idx;
   if (idx < rows) {
     double sigma = 0;
     //Indicates which row must be computed by the current thread.
-    uint32_t index = idx * cols;
-    for (uint32_t j = 0; j < cols; ++j) {
+    int index = idx * cols;
+    for (int j = 0; j < cols; ++j) {
       //Ensures not to use a diagonal value when computing.
       if (current_row != j) {
 	sigma += A[index + j] * x_c[j];
@@ -54,9 +54,9 @@ __global__ void run_jacobi(double* A, double* b,
    @return None
 */
 __global__ void compute_error (double* x_c, double* x_n,
-			       double* x_e, uint32_t n) {
-  uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+			       double* x_e, int n) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
-    x_e[idx] = abs(x_n[idx] - x_c[idx]);
+    x_e[idx] = gpu_abs(x_n[idx] - x_c[idx]);
   }
 }
