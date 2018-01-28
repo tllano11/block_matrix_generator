@@ -21,5 +21,3 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 		   int rows_gpu, int total_iters);
 
 void solve(double* A, double* b, uint32_t niter, double tol);
-
-void print_data(double* matrix, long rows, long cols);
