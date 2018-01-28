@@ -1,17 +1,17 @@
-#include<iostream>
-#include<random>
-#include<limits>
-#include<cstdio>
-#include<ctype.h>
-#include<stdlib.h>
-#include<getopt.h>
-#include<cmath>
-#include<sys/sysinfo.h>
-#include<thread>
-#include<math.h>
-#include<mutex>
-#include<condition_variable>
-//#include "solver.h"
+#include <iostream>
+#include <random>
+#include <limits>
+#include <cstdio>
+#include <ctype.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <cmath>
+#include <sys/sysinfo.h>
+#include <thread>
+#include <math.h>
+#include <mutex>
+#include <condition_variable>
+#include "solver.h"
 
 #define ERROR 1
 #define SUCCESS 0
@@ -19,11 +19,10 @@
 
 using namespace std;
 
-double *A_ptr, *x_ptr, *b_ptr;
+double *A_ptr, *x_ptr, *b_ptr, rel;
 int rows_A, cols_A, vector_size, delta, thread_counter;
 mutex print_mutex, mult_mutex, mtx;
 condition_variable cv;
-
 
 void print_data(double* vector, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
@@ -110,7 +109,8 @@ void generate_system(int rows_per_thread, int number_threads, int thread_id){
 
 int main(int argc, char** argv){
 
-  int opt, rows_per_thread, filename_length, number_threads;
+  int opt, rows_per_thread, filename_length, number_threads, niter;
+  double tol;
   char* filename;
   //lck = new unique_lock(mult_mutex);
 
@@ -119,9 +119,9 @@ int main(int argc, char** argv){
     cerr << "Not enough arguments" << endl;
     return 1;
   }else{
-    while ((opt = getopt(argc, argv, "s:f:d:t:h")) != EOF) {
+    while ((opt = getopt(argc, argv, "n:f:d:t:r:i:e:h")) != EOF) {
       switch (opt) {
-      case 's':
+      case 'n':
 	cols_A = stoi(optarg);
 	rows_A = stoi(optarg);
 	vector_size = stoi(optarg);
@@ -133,6 +133,18 @@ int main(int argc, char** argv){
 	number_threads = stoi(optarg);
 	thread_counter = stoi(optarg);
 	break;
+      case 'r':
+	rel = stod(optarg);
+	break;
+      case 'i':
+	niter = stoi(optarg);
+	break;
+      case 'e':
+	tol = stod(optarg);
+	break;
+      case 'd':
+	delta = stof(optarg);
+	break;
       case 'h':
 	cout << "\nUsage:\n"
 	     << "\r\t-t <Number of threads>\n"
@@ -141,9 +153,6 @@ int main(int argc, char** argv){
 	     << "\r\t-d <delta value>\n"
 	     << endl;
 	return 0;
-      case 'd':
-	delta = stof(optarg);
-	break;
       case '?':
 	cerr << "Use option -h to display a help message." << endl;
 	return 1;
@@ -157,7 +166,7 @@ int main(int argc, char** argv){
   A_ptr = new double[rows_A * cols_A];
   b_ptr = new double[vector_size];
   x_ptr = new double[vector_size];
-  rows_per_thread = floor(rows_A/number_threads);
+  rows_per_thread = floor(rows_A / number_threads);
 
   thread system_threads[number_threads];
   for(int i = 0; i < number_threads; i++){
@@ -168,7 +177,9 @@ int main(int argc, char** argv){
     system_threads[i].join();
   }
 
-  cout << string(50, '*') << endl;
+  solve(A_ptr, b_ptr, niter, tol);
+
+  /*  cout << string(50, '*') << endl;
   cout << "Matrix A: " << endl;
   cout << string(50, '*') << endl;
   print_data(A_ptr, rows_A, cols_A);
@@ -179,5 +190,5 @@ int main(int argc, char** argv){
   cout << string(50, '*') << endl;
   cout << "Vector b: " << endl;
   cout << string(50, '*') << endl;
-  print_data(b_ptr, vector_size, 1);
+  print_data(b_ptr, vector_size, 1);*/
 }
