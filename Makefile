@@ -4,7 +4,7 @@ CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
 LDFLAGS = -I./SLAE_Solver
 NVCCFLAGS = -x cu -Wno-deprecated-gpu-targets -std=c++11 -Xcompiler -fPIC
 NVCC = nvcc
-DEBUG = -g -D DEBUG
+DEBUG = -g -DDEBUG
 OUT_PATH = ./bin
 TARGET = matrix_generator
 SRC_GEN = matrix_generator-v3
@@ -21,6 +21,7 @@ SRC_SOLVER = solver
 all: init $(TARGET)
 
 debug: CXXFLAGS += $(DEBUG)
+debug: NVCCFLAGS += $(foreach opt, $(DEBUG), -Xcompiler $(opt))
 debug: all
 
 $(TARGET): $(OUT_PATH)/$(SRC_GEN).o $(OUT_PATH)/$(SRC_SOLVER).o $(OUT_PATH)/$(SRC_GPU_JACOBI).o
