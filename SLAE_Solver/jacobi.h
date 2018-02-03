@@ -10,7 +10,7 @@ __device__ double gpu_abs(double number);
 __global__ void run_jacobi(double* A, double* b,
 			   double* x_c, double* x_n,
 			   int rows, int cols,
-			   int first_row_block, double rel);
+			   int first_row_block, double rel, double* param);
 
 __global__ void compute_error (double* x_c, double* x_n,
 			       double* x_e, int n);

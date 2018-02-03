@@ -22,11 +22,12 @@ __device__ double gpu_abs(double number) {
 __global__ void run_jacobi(double* A, double* b,
 			   double* x_c, double* x_n,
 			   int rows, int cols,
-			   int first_row_block, double rel) {
+			   int first_row_block, double rel, double* param) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int current_row = first_row_block + idx;
+
   if (idx < rows) {
-    double sigma = 0;
+    double sigma = 0.0;
     //Indicates which row must be computed by the current thread.
     int index = idx * cols;
     for (int j = 0; j < cols; ++j) {
@@ -35,8 +36,14 @@ __global__ void run_jacobi(double* A, double* b,
 	sigma += A[index + j] * x_c[j];
       }
     }
-    x_n[idx] = (b[idx] - sigma) / A[index + current_row];
-    x_n[idx] = rel * x_n[idx] + (double)(1.0 - rel) * x_c[idx];
+
+    param[0] = sigma;
+    param[1] = A[index + current_row];
+    param[2] = b[current_row];
+    param[3] = (b[current_row] - param[0]) / A[index + current_row];
+    param[4] = (b[current_row] - sigma) / A[index + current_row];
+    x_n[current_row] = (param[2] - param[0]) / param[1];
+    x_n[current_row] = rel * x_n[current_row] + (1.0 - rel) * x_c[current_row];
   }
 }
 

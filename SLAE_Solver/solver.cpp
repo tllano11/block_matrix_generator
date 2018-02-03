@@ -35,6 +35,10 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 		   int rows_gpu, int total_iters) {
   int first_row_block;
   int shift;
+  double* vec = new double[rows_A];
+  double* param = cuda_allocate<double>(5);
+  double* res = new double[5];
+
   for (int i = 0; i < total_iters; ++i) {
     first_row_block = i * rows_gpu;
     shift = first_row_block * cols_A;
@@ -43,18 +47,39 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
       rows_gpu = rows_A - i * rows_gpu;
     }
 
+    cout << string(50, '+') << endl;
+    cout << "First row: " << first_row_block << endl;
+    cout << "subiter: " << i << endl;
+
     assert(cudaSuccess == cudaMemcpy(gpu_A, A + shift, rows_gpu*cols_A*double_size, cudaMemcpyHostToDevice));
 
-    run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b + first_row_block,
-				 gpu_x_c + first_row_block, gpu_x_n + first_row_block,
+    cout << string(50, 'A') << endl;
+    print_vector(A+shift, rows_gpu, cols_A);
+
+    run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b,
+				 gpu_x_c, gpu_x_n,
 				 rows_gpu, cols_A,
-				 first_row_block, rel);
+				 first_row_block, rel, param);
 
     compute_error <<< bpg, tpb >>> (gpu_x_c + first_row_block,
 				    gpu_x_n + first_row_block,
 				    gpu_x_e + first_row_block,
 				    rows_gpu);
 
+    assert(cudaSuccess == cudaMemcpy(vec, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
+    cout << string(50, 'C') << endl;
+    print_vector(vec, rows_A, 1);
+
+    assert(cudaSuccess == cudaMemcpy(vec, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
+    cout << string(50, 'N') << endl;
+    print_vector(vec, rows_A, 1);
+
+    assert(cudaSuccess == cudaMemcpy(res, param, 5*double_size, cudaMemcpyDeviceToHost));
+    cout << "Sigma: " << res[0] << endl;
+    cout << "A[index + curr]: " << res[1] << endl;
+    cout << "b[curr]: " << res[2] << endl;
+    cout << "OPER True: " << res[3] << endl;
+    cout << "OPER False: " << res[4] << endl;
   }
 }
 
@@ -70,17 +95,13 @@ void solve(double* A, double* b, int niter, double tol){
   print_vector(b, cols_A, 1);
 #endif //DEBUG
 
-  bpg = cols_A + (tpb - 1) / tpb;
+  // bpg = cols_A + (tpb - 1) / tpb;
+
+  bpg = 1;
 
   // Pointers to host memory
   double* x_c = new double[cols_A]; // x current
-
-  // Initialize the current solution to whatever value (zero in this case)
-  // is necessary to overwrite any junk data present in the memory space
-  // allocated for gpu_x_c
-  for(int i = 0; i < cols_A; ++i){
-    x_c[i] = 0;
-  }
+  double* x_n = new double[cols_A];
 
   cudaDeviceProp props;
   cudaGetDeviceProperties(&props, 0);
@@ -91,7 +112,7 @@ void solve(double* A, double* b, int niter, double tol){
 
   // Pointers to GPU memory
   double* gpu_x_c = to_device<double>(x_c, cols_A);
-  double* gpu_x_n = cuda_allocate<double>(cols_A);
+  double* gpu_x_n = to_device<double>(x_n, cols_A);
   double* gpu_x_e = cuda_allocate<double>(rows_A);
   double* gpu_A = cuda_allocate<double>(rows_gpu * cols_A);
   double* gpu_b = to_device<double>(b, rows_A);
@@ -119,21 +140,29 @@ void solve(double* A, double* b, int niter, double tol){
     assert(CUBLAS_STATUS_SUCCESS == cublasIdamax(handle, cols_A, (const double*)gpu_x_e, 1, max_err_incx));
     assert(cudaSuccess == cudaMemcpy(max_err, gpu_x_e + (*max_err_incx - 1), double_size, cudaMemcpyDeviceToHost));
     count++;
+
+    assert(cudaSuccess == cudaMemcpy(x_e, gpu_x_e, cols_A*double_size, cudaMemcpyDeviceToHost));
+    cout << string(50, 'E') << endl;
+    print_vector(x_e, rows_A, 1);
+
+    cout << "Max Err: " << *max_err << endl;
   }
 
   if (*max_err < tol) {
-    if ((count % 2) == 0) {
-      assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
-    } else {
-      assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
-    }
     cout << "Jacobi succeeded in " << count << " iterations with an error of "
-	      << *max_err << endl;
+	 << *max_err << endl;
 
-    print_vector(x_c, rows_A, 1);
   } else {
     cout << "Jacobi failed." << endl;
   }
+
+  if ((count % 2) == 0) {
+    assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
+  } else {
+    assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
+  }
+
+  print_vector(x_c, rows_A, 1);
 
   assert(cudaSuccess == cudaFree(gpu_A));
   assert(cudaSuccess == cudaFree(gpu_b));

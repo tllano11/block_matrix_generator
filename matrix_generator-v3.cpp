@@ -178,18 +178,18 @@ int main(int argc, char** argv){
   }
 
 
-  /*  cout << string(50, '*') << endl;
+  cout << string(50, '*') << endl;
   cout << "Matrix A: " << endl;
   cout << string(50, '*') << endl;
-  print_data(A_ptr, rows_A, cols_A);*/
+  print_data(A_ptr, rows_A, cols_A);
   cout << string(50, '*') << endl;
   cout << "Vector x: " << endl;
   cout << string(50, '*') << endl;
   print_data(x_ptr, vector_size, 1);
-  /*  cout << string(50, '*') << endl;
+  cout << string(50, '*') << endl;
   cout << "Vector b: " << endl;
   cout << string(50, '*') << endl;
-  print_data(b_ptr, vector_size, 1);*/
+  print_data(b_ptr, vector_size, 1);
 
   solve(A_ptr, b_ptr, niter, tol);
 }
