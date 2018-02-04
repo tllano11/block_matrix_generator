@@ -11,7 +11,11 @@ int bpg;
 
 template <class T> T* cuda_allocate (int size) {
   T* device_ptr;
-  assert(cudaSuccess == cudaMalloc((void **) &device_ptr, size*sizeof(T)));
+  cudaError_t err = cudaMalloc((void **) &device_ptr, size*sizeof(T));
+  if (err != cudaSuccess) {
+    cout << "Cuda failure: " << cudaGetErrorString(err) << endl;
+    exit(1);
+  }
   return device_ptr;
 }
 
