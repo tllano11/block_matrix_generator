@@ -27,9 +27,9 @@ condition_variable cv;
 void print_data(double* vector, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j){
-      cout << vector[i * cols + j] << " ";
+      cerr << vector[i * cols + j] << " ";
     }
-    cout << endl;
+    cerr << endl;
   }
 }
 
@@ -192,5 +192,6 @@ int main(int argc, char** argv){
   print_data(b_ptr, vector_size, 1);
 #endif //DEBUG
 
+  print_data(x_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, niter, tol);
 }

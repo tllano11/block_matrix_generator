@@ -112,11 +112,10 @@ void solve(double* A, double* b, int niter, double tol){
   if(rows_gpu < 1){
     cerr << "The matrix is too BIG; not even one row fits in the memory" << endl;
     exit(1);
-  }
-
-  if(rows_gpu > rows_A){
+  } else if(rows_gpu > rows_A){
     rows_gpu = rows_A;
   }
+
   bpg = ceil(rows_gpu / (double)tpb);
 
   // Pointers to GPU memory
@@ -159,10 +158,10 @@ void solve(double* A, double* b, int niter, double tol){
   }
 
   if (*max_err < tol) {
-    cerr << "Jacobi succeeded in " << count << " iterations with an error of "
+    cout << "Jacobi succeeded in " << count << " iterations with an error of "
 	 << *max_err << endl;
   } else {
-    cerr << "Jacobi failed." << endl;
+    cout << "Jacobi failed." << endl;
   }
 
   if ((count % 2) == 0) {
