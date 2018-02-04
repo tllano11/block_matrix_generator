@@ -13,7 +13,7 @@ template <class T> T* cuda_allocate (int size) {
   T* device_ptr;
   cudaError_t err = cudaMalloc((void **) &device_ptr, size*sizeof(T));
   if (err != cudaSuccess) {
-    cout << "Cuda failure: " << cudaGetErrorString(err) << endl;
+    cerr << "Cuda failure: " << cudaGetErrorString(err) << endl;
     exit(1);
   }
   return device_ptr;
@@ -110,6 +110,7 @@ void solve(double* A, double* b, int niter, double tol){
   cudaGetDeviceProperties(&props, 0);
   int gpu_mem = props.totalGlobalMem;
   int gpu_mem_for_A = gpu_mem - (gpu_vector_count * cols_A);
+  gpu_mem_for_A = gpu_mem_for_A * 0.8;
   // Max rows to allocate for A
   int rows_gpu = gpu_mem_for_A / (cols_A * double_size);
 

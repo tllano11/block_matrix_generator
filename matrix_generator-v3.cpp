@@ -192,6 +192,6 @@ int main(int argc, char** argv){
   print_data(b_ptr, vector_size, 1);
 #endif //DEBUG
 
-  print_data(x_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, niter, tol);
+  //print_data(x_ptr, vector_size, 1);
 }
