@@ -25,24 +25,25 @@ __global__ void run_jacobi(double* A, double* b,
 			   int first_row_block, double rel, double* param) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int current_row = first_row_block + idx;
+  double* sigma = new double[1];
 
   if (idx < rows) {
-    double sigma = 0.0;
+    *sigma = 0.0;
     //Indicates which row must be computed by the current thread.
     int index = idx * cols;
     for (int j = 0; j < cols; ++j) {
       //Ensures not to use a diagonal value when computing.
       if (current_row != j) {
-	sigma += A[index + j] * x_c[j];
+	*sigma += A[index + j] * x_c[j];
       }
     }
 
-    param[0] = sigma;
+    param[0] = *sigma;
     param[1] = A[index + current_row];
     param[2] = b[current_row];
-    param[3] = (b[current_row] - param[0]) / A[index + current_row];
-    param[4] = (b[current_row] - sigma) / A[index + current_row];
-    x_n[current_row] = (param[2] - param[0]) / param[1];
+    param[3] = (b[current_row] - *sigma) / A[index + current_row];
+    param[4] = (b[current_row] - param[0]) / A[index + current_row];
+    x_n[current_row] = (param[2] - *sigma) / param[1];
     x_n[current_row] = rel * x_n[current_row] + (1.0 - rel) * x_c[current_row];
   }
 }

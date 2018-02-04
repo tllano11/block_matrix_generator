@@ -177,7 +177,7 @@ int main(int argc, char** argv){
     system_threads[i].join();
   }
 
-
+#ifdef DEBUG
   cout << string(50, '*') << endl;
   cout << "Matrix A: " << endl;
   cout << string(50, '*') << endl;
@@ -190,6 +190,7 @@ int main(int argc, char** argv){
   cout << "Vector b: " << endl;
   cout << string(50, '*') << endl;
   print_data(b_ptr, vector_size, 1);
+#endif //DEBUG
 
   solve(A_ptr, b_ptr, niter, tol);
 }
