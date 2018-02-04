@@ -11,6 +11,18 @@ extern int rows_A, cols_A;
 extern double rel;
 extern int bpg;
 
+inline void gpu_assert(cudaError_t err,
+		       const char *file,
+		       int line ) {
+  if (err != cudaSuccess) {
+    printf( "%s in %s at line %d\n",
+	    cudaGetErrorString( err ),
+	    file, line );
+    exit(EXIT_FAILURE);
+  }
+}
+#define gassert(err) (gpu_assert( err, __FILE__, __LINE__ ))
+
 template <class T> T* cuda_allocate (int size);
 
 template <class T> T* to_device(T* src, int size);
