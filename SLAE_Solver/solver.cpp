@@ -12,16 +12,13 @@ int bpg;
 template <class T> T* cuda_allocate (int size) {
   T* device_ptr;
   cudaError_t err = cudaMalloc((void **) &device_ptr, size*sizeof(T));
-  if (err != cudaSuccess) {
-    cout << "Cuda failure: " << cudaGetErrorString(err) << endl;
-    exit(1);
-  }
+  gassert(err);
   return device_ptr;
 }
 
 template <class T> T* to_device(T* src, int size) {
   T* dst = cuda_allocate<double>(size);
-  assert(cudaSuccess == cudaMemcpy(dst, src, size*sizeof(T), cudaMemcpyHostToDevice));
+  gassert(cudaMemcpy(dst, src, size*sizeof(T), cudaMemcpyHostToDevice));
   return dst;
 }
 
@@ -51,7 +48,7 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
       rows_gpu = rows_A - i * rows_gpu;
     }
 
-    assert(cudaSuccess == cudaMemcpy(gpu_A, A + shift, rows_gpu*cols_A*double_size, cudaMemcpyHostToDevice));
+    gassert(cudaMemcpy(gpu_A, A + shift, rows_gpu*cols_A*double_size, cudaMemcpyHostToDevice));
 
     run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b,
 				 gpu_x_c, gpu_x_n,
@@ -70,15 +67,15 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
     cout << string(50, 'A') << endl;
     print_vector(A+shift, rows_gpu, cols_A);
 
-    assert(cudaSuccess == cudaMemcpy(vec, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(vec, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     cout << string(50, 'C') << endl;
     print_vector(vec, rows_A, 1);
 
-    assert(cudaSuccess == cudaMemcpy(vec, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(vec, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
     cout << string(50, 'N') << endl;
     print_vector(vec, rows_A, 1);
 
-    assert(cudaSuccess == cudaMemcpy(res, param, 5*double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(res, param, 5*double_size, cudaMemcpyDeviceToHost));
     cout << "Sigma: " << res[0] << endl;
     cout << "A[index + curr]: " << res[1] << endl;
     cout << "b[curr]: " << res[2] << endl;
@@ -151,11 +148,11 @@ void solve(double* A, double* b, int niter, double tol){
       launch_jacobi(A, gpu_A, gpu_b, gpu_x_n, gpu_x_c, gpu_x_e, rows_gpu, total_iters);
     }
     assert(CUBLAS_STATUS_SUCCESS == cublasIdamax(handle, cols_A, (const double*)gpu_x_e, 1, max_err_incx));
-    assert(cudaSuccess == cudaMemcpy(max_err, gpu_x_e + (*max_err_incx - 1), double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(max_err, gpu_x_e + (*max_err_incx - 1), double_size, cudaMemcpyDeviceToHost));
     count++;
 
 #ifdef DEBUG
-    assert(cudaSuccess == cudaMemcpy(x_e, gpu_x_e, cols_A*double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(x_e, gpu_x_e, cols_A*double_size, cudaMemcpyDeviceToHost));
     cout << string(50, 'E') << endl;
     print_vector(x_e, rows_A, 1);
     cout << "Max Err: " << *max_err << endl;
@@ -170,18 +167,18 @@ void solve(double* A, double* b, int niter, double tol){
   }
 
   if ((count % 2) == 0) {
-    assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
   } else {
-    assert(cudaSuccess == cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
+    gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
   }
 
   print_vector(x_c, rows_A, 1);
 
-  assert(cudaSuccess == cudaFree(gpu_A));
-  assert(cudaSuccess == cudaFree(gpu_b));
-  assert(cudaSuccess == cudaFree(gpu_x_n));
-  assert(cudaSuccess == cudaFree(gpu_x_e));
-  assert(cudaSuccess == cudaFree(gpu_x_c));
+  gassert(cudaFree(gpu_A));
+  gassert(cudaFree(gpu_b));
+  gassert(cudaFree(gpu_x_n));
+  gassert(cudaFree(gpu_x_e));
+  gassert(cudaFree(gpu_x_c));
   cublasDestroy(handle);
   delete max_err_incx;
   delete[] x_c;
