@@ -48,6 +48,7 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
       rows_gpu = rows_A - i * rows_gpu;
     }
 
+    cout << i << ": " << rows_gpu << endl;
     gassert(cudaMemcpy(gpu_A, A + shift, rows_gpu*cols_A*double_size, cudaMemcpyHostToDevice));
 
     run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b,
@@ -118,6 +119,8 @@ void solve(double* A, double* b, int niter, double tol){
     rows_gpu = rows_A;
   }
 
+  cout << "Rows GPU: " << rows_gpu << endl;
+
   bpg = ceil(rows_gpu / (double)tpb);
 
   // Pointers to GPU memory
@@ -138,8 +141,12 @@ void solve(double* A, double* b, int niter, double tol){
   double error = tol + 1;
   double* max_err = &error;
 
-  int total_iters = ceil(rows_A/rows_gpu);
+  int total_iters = ceil(rows_A/(double)rows_gpu);
+  cout << "Total iters: " << total_iters << endl;
+
+#ifdef DEBUG
   double* x_e = new double[rows_A];
+#endif //DEBUG
 
   while ( (*max_err > tol) && (count < niter) ) {
     if ((count % 2) == 0) {
