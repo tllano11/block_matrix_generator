@@ -27,9 +27,9 @@ condition_variable cv;
 void print_data(double* vector, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j){
-      cerr << vector[i * cols + j] << " ";
+      cout << vector[i * cols + j] << " ";
     }
-    cerr << endl;
+    cout << endl;
   }
 }
 

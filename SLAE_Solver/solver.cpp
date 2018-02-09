@@ -78,8 +78,8 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 
     gassert(cudaMemcpy(res, param, 5*double_size, cudaMemcpyDeviceToHost));
     cout << "Sigma: " << res[0] << endl;
-    cout << "A[index + curr]: " << res[1] << endl;
-    cout << "b[curr]: " << res[2] << endl;
+    cout << "Siga 2: " << res[1] << endl;
+    cout << "Sigma 3: " << res[2] << endl;
     cout << "OPER True: " << res[3] << endl;
     cout << "OPER False: " << res[4] << endl;
 #endif //DEBUG
@@ -118,7 +118,7 @@ void solve(double* A, double* b, int niter, double tol){
   } else if(rows_gpu > rows_A){
     rows_gpu = rows_A;
   }
-
+  rows_gpu = 2;
   cout << "Rows GPU: " << rows_gpu << endl;
 
   bpg = ceil(rows_gpu / (double)tpb);
