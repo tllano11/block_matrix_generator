@@ -33,6 +33,12 @@ void print_data(double* vector, int rows, int cols) {
   }
 }
 
+void print_data2(double* vector, int rows, int cols) {
+  for (int i = 0; i < rows; ++i) {
+    cerr << vector[i * cols] << endl;
+  }
+}
+
 /**
  * Fills A matrix with random numbers, at the end the matrix will be diagonally dominant.
  **/
@@ -191,7 +197,8 @@ int main(int argc, char** argv){
   cout << string(50, '*') << endl;
   print_data(b_ptr, vector_size, 1);
 #endif //DEBUG
-
+  print_data(x_ptr, vector_size, 1);
+  //print_data2(A_ptr, rows_A, cols_A);
   solve(A_ptr, b_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
 }

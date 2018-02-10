@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -pthread
 CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
 LDFLAGS = -I./SLAE_Solver
-NVCCFLAGS = -x cu -Wno-deprecated-gpu-targets -std=c++11 -Xcompiler -fPIC
+NVCCFLAGS = -lineinfo -x cu -Wno-deprecated-gpu-targets -std=c++11 -Xcompiler -fPIC
 NVCC = nvcc
 DEBUG = -g -DDEBUG
 OUT_PATH = ./bin

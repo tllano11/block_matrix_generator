@@ -36,9 +36,6 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 		   int rows_gpu, int total_iters) {
   int first_row_block;
   int shift;
-  double* vec = new double[rows_A];
-  double* param = cuda_allocate<double>(5);
-  double* res = new double[5];
 
   for (int i = 0; i < total_iters; ++i) {
     first_row_block = i * rows_gpu;
@@ -48,13 +45,12 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
       rows_gpu = rows_A - i * rows_gpu;
     }
 
-    cout << i << ": " << rows_gpu << endl;
     gassert(cudaMemcpy(gpu_A, A + shift, rows_gpu*cols_A*double_size, cudaMemcpyHostToDevice));
 
     run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b,
 				 gpu_x_c, gpu_x_n,
 				 rows_gpu, cols_A,
-				 first_row_block, rel, param);
+				 first_row_block, rel);
 
     compute_error <<< bpg, tpb >>> (gpu_x_c + first_row_block,
 				    gpu_x_n + first_row_block,
@@ -67,21 +63,6 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
     cout << "subiter: " << i << endl;
     cout << string(50, 'A') << endl;
     print_vector(A+shift, rows_gpu, cols_A);
-
-    gassert(cudaMemcpy(vec, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
-    cout << string(50, 'C') << endl;
-    print_vector(vec, rows_A, 1);
-
-    gassert(cudaMemcpy(vec, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
-    cout << string(50, 'N') << endl;
-    print_vector(vec, rows_A, 1);
-
-    gassert(cudaMemcpy(res, param, 5*double_size, cudaMemcpyDeviceToHost));
-    cout << "Sigma: " << res[0] << endl;
-    cout << "A[index + curr]: " << res[1] << endl;
-    cout << "b[curr]: " << res[2] << endl;
-    cout << "OPER True: " << res[3] << endl;
-    cout << "OPER False: " << res[4] << endl;
 #endif //DEBUG
   }
 }
@@ -119,7 +100,7 @@ void solve(double* A, double* b, int niter, double tol){
     rows_gpu = rows_A;
   }
 
-  cout << "Rows GPU: " << rows_gpu << endl;
+  //cout << "Rows GPU: " << rows_gpu << endl;
 
   bpg = ceil(rows_gpu / (double)tpb);
 
@@ -142,7 +123,7 @@ void solve(double* A, double* b, int niter, double tol){
   double* max_err = &error;
 
   int total_iters = ceil(rows_A/(double)rows_gpu);
-  cout << "Total iters: " << total_iters << endl;
+  //cout << "Total iters: " << total_iters << endl;
 
 #ifdef DEBUG
   double* x_e = new double[rows_A];
@@ -169,17 +150,16 @@ void solve(double* A, double* b, int niter, double tol){
   if (*max_err < tol) {
     cout << "Jacobi succeeded in " << count << " iterations with an error of "
 	 << *max_err << endl;
+    if ((count % 2) == 0) {
+      gassert(cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
+    } else {
+      gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
+    }
+    print_vector(x_c, rows_A, 1);
+
   } else {
     cout << "Jacobi failed." << endl;
   }
-
-  if ((count % 2) == 0) {
-    gassert(cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
-  } else {
-    gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
-  }
-
-  print_vector(x_c, rows_A, 1);
 
   gassert(cudaFree(gpu_A));
   gassert(cudaFree(gpu_b));
