@@ -7,6 +7,8 @@ const int double_size = sizeof(double);
 const int gpu_vector_count = 4;
 // Threads per block
 const int  tpb = 32;
+// Cuda events used to measure computation time for kernels
+cudaEvent_t start,stop;
 int bpg;
 
 template <class T> T* cuda_allocate (int size) {
@@ -31,6 +33,12 @@ void print_vector(double* vector, int rows, int cols) {
   }
 }
 
+void print_telapsed(cudaEvent_t start, cudaEvent_t stop, string msg) {
+  float telapsed;
+  gassert(cudaEventElapsedTime(&telapsed,start,stop));
+  cout <<"Elapsed " << msg << " Time = " << telapsed << " ms" << endl;
+}
+
 void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 		   double* gpu_x_c, double* gpu_x_n, double* gpu_x_e,
 		   int rows_gpu, int total_iters) {
@@ -47,15 +55,23 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 
     gassert(cudaMemcpy(gpu_A, A + shift, rows_gpu*cols_A*double_size, cudaMemcpyHostToDevice));
 
+    gassert(cudaEventRecord(start));
     run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b,
 				 gpu_x_c, gpu_x_n,
 				 rows_gpu, cols_A,
 				 first_row_block, rel);
+    gassert(cudaEventRecord(stop));
+    gassert(cudaEventSynchronize(stop));
+    print_telapsed(start, stop, "run_jacobi");
 
+    gassert(cudaEventRecord(start));
     compute_error <<< bpg, tpb >>> (gpu_x_c + first_row_block,
 				    gpu_x_n + first_row_block,
 				    gpu_x_e + first_row_block,
 				    rows_gpu);
+    gassert(cudaEventRecord(stop));
+    gassert(cudaEventSynchronize(stop));
+    print_telapsed(start, stop, "compute_error");
 
 #ifdef DEBUG
     cout << string(50, '+') << endl;
@@ -117,6 +133,10 @@ void solve(double* A, double* b, int niter, double tol){
   // Will store index of max_err
   int* max_err_incx = new int();
 
+  //Create events to measure time
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+
   // Control whether the algorithm fails or succeeds
   int count = 0;
   double error = tol + 1;
@@ -135,7 +155,11 @@ void solve(double* A, double* b, int niter, double tol){
     } else {
       launch_jacobi(A, gpu_A, gpu_b, gpu_x_n, gpu_x_c, gpu_x_e, rows_gpu, total_iters);
     }
+    gassert(cudaEventRecord(start));
     assert(CUBLAS_STATUS_SUCCESS == cublasIdamax(handle, cols_A, (const double*)gpu_x_e, 1, max_err_incx));
+    gassert(cudaEventRecord(stop));
+    gassert(cudaEventSynchronize(stop));
+    print_telapsed(start, stop, "cublas");
     gassert(cudaMemcpy(max_err, gpu_x_e + (*max_err_incx - 1), double_size, cudaMemcpyDeviceToHost));
     count++;
 
@@ -161,6 +185,8 @@ void solve(double* A, double* b, int niter, double tol){
     cout << "Jacobi failed." << endl;
   }
 
+  gassert(cudaEventDestroy(start));
+  gassert(cudaEventDestroy(stop));
   gassert(cudaFree(gpu_A));
   gassert(cudaFree(gpu_b));
   gassert(cudaFree(gpu_x_n));
