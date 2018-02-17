@@ -11,6 +11,7 @@
 #include <math.h>
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 #include "solver.h"
 
 #define ERROR 1
@@ -110,7 +111,12 @@ void generate_system(int rows_per_thread, int number_threads, int thread_id){
   generate_x(x_ptr_local, rows_per_thread);
   barrier();
   double *b_ptr_local = b_ptr + initial_thread_row;
+  auto t1 = chrono::high_resolution_clock::now();
   generate_b(b_ptr_local, A_ptr_local, rows_per_thread);
+  auto t2 = chrono::high_resolution_clock::now();
+  cout << "B in CPU took "
+       << chrono::duration_cast<chrono::milliseconds>(t2-t1).count()
+       << " milliseconds" << endl;
 }
 
 int main(int argc, char** argv){
@@ -197,7 +203,10 @@ int main(int argc, char** argv){
   cout << string(50, '*') << endl;
   print_data(b_ptr, vector_size, 1);
 #endif //DEBUG
-  print_data(x_ptr, vector_size, 1);
+  cout << "Matrix A: " << endl;
+  cout << string(50, '*') << endl;
+  print_data(A_ptr, rows_A, cols_A);
+  print_data(b_ptr, vector_size, 1);
   //print_data2(A_ptr, rows_A, cols_A);
   solve(A_ptr, b_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
