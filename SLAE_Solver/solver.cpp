@@ -197,7 +197,7 @@ void solve(double* A, double* b, int niter, double tol){
   delete[] x_c;
 }
 
-void solve_mkl(double* A, double* b, int n) {
+void solve_mkl(double* A, double* b, int n, double* x) {
   // The number of columns of b
   int nrhs = 1;
   // A's dimension
@@ -206,9 +206,10 @@ void solve_mkl(double* A, double* b, int n) {
   int ldb = n;
   // Will contain the pivot indices
   int ipiv[n];
+  // Wheter mkl failed or succeeded
   int info;
 
-  //dgesv(&n, &nrhs, A, &lda, ipiv, b, &ldb, &info);
+  // Solve system
   double start = dsecnd();
   dgesv(&n, &nrhs, A, &lda, ipiv, b, &ldb, &info);
   cout << "Elapsed mkl_dgesv Time = " << dsecnd() - start << endl;
@@ -218,6 +219,17 @@ void solve_mkl(double* A, double* b, int n) {
     cout << "The solution could not be computed." << endl;
   } else {
     print_vector(b, n, 1);
+
+    double err_v[n];
+    double err_abs[n];
+    // Compute err_v = x - b
+    vdSub(n, x, b, err_v);
+    cout << "MKL error: " << endl;
+    print_vector(err_v, n, 1);
+    //compute err_abs = | err_v |
+    vdAbs(n, err_v, err_abs);
+    int index = cblas_idamax(n, err_abs, 1);
+    cout << "MKL succeeded with an error of: " << err_abs[index-1] << endl;
   }
 }
 
