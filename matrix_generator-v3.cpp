@@ -210,4 +210,5 @@ int main(int argc, char** argv){
   //print_data2(A_ptr, rows_A, cols_A);
   solve(A_ptr, b_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
+  solve_mkl(A_ptr, b_ptr, rows_A);
 }
