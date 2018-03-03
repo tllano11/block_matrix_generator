@@ -24,3 +24,6 @@ for val in $cublas_vals; do
 done
 
 echo "cublas elapsed time: $etime ms"
+
+mkl_val=$(grep -R mkl_dgesv out.log | awk '{print $5}')
+echo "mkl elapsed time: $mkl_val sec"

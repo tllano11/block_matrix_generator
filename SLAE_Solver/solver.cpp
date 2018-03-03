@@ -197,6 +197,30 @@ void solve(double* A, double* b, int niter, double tol){
   delete[] x_c;
 }
 
+void solve_mkl(double* A, double* b, int n) {
+  // The number of columns of b
+  int nrhs = 1;
+  // A's dimension
+  int lda = n;
+  // b's dimension
+  int ldb = n;
+  // Will contain the pivot indices
+  int ipiv[n];
+  int info;
+
+  //dgesv(&n, &nrhs, A, &lda, ipiv, b, &ldb, &info);
+  double start = dsecnd();
+  dgesv(&n, &nrhs, A, &lda, ipiv, b, &ldb, &info);
+  cout << "Elapsed mkl_dgesv Time = " << dsecnd() - start << endl;
+
+  cout << "\nMKL results:\n" << endl;
+  if(info > 0) {
+    cout << "The solution could not be computed." << endl;
+  } else {
+    print_vector(b, n, 1);
+  }
+}
+
 /*
   int main() {
   double A[] = {4, -1, -1, -2, 6, 1, -1, 1, 7};

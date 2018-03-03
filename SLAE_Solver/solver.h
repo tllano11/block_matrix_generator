@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
+#include "mkl.h"
 #include "jacobi.h"
 
 extern int rows_A, cols_A;
@@ -32,3 +33,5 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 		   int rows_gpu, int total_iters);
 
 void solve(double* A, double* b, int niter, double tol);
+
+void solve_mkl(double* A, double* b, int n);

@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -pthread
-CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include
+CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include -I/opt/include/ ${LAPACK_INCLUDE} -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm
 LDFLAGS = -I./SLAE_Solver
 NVCCFLAGS = -lineinfo -x cu -Wno-deprecated-gpu-targets -std=c++11 -Xcompiler -fPIC
 NVCC = nvcc
