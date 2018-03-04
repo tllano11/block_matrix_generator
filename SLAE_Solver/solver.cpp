@@ -179,7 +179,7 @@ void solve(double* A, double* b, int niter, double tol){
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
-    print_vector(x_c, rows_A, 1);
+    // print_vector(x_c, rows_A, 1);
 
   } else {
     cout << "Jacobi failed." << endl;
