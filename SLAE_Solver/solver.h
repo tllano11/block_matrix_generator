@@ -1,22 +1,34 @@
-#ifndef SOLVER_H
-#define SOLVER_H
+#pragma once
 
 #include <stdlib.h>
 #include <assert.h>
-#include <algorithm>
 #include <iostream>
+#include <cuda_runtime_api.h>
+#include <cublas_v2.h>
 #include "jacobi.h"
 
-namespace solver {
-  template <class T> T* cuda_allocate (int size);
+extern int rows_A, cols_A;
+extern double rel;
+extern int bpg;
 
-  template <class T> T* to_device(T* src, int size);
-
-  void solve(double* A, double* b,
-	     int matrix_size, int vector_size,
-	     double* x_c, uint32_t niter,
-	     float tol, float rel);
-
-  void print_data(double* matrix, long rows, long cols);
+inline void gpu_assert(cudaError_t err,
+		       const char *file,
+		       int line ) {
+  if (err != cudaSuccess) {
+    printf( "%s in %s at line %d\n",
+	    cudaGetErrorString( err ),
+	    file, line );
+    exit(EXIT_FAILURE);
+  }
 }
-#endif /* SOLVER_H */
+#define gassert(err) (gpu_assert( err, __FILE__, __LINE__ ))
+
+template <class T> T* cuda_allocate (int size);
+
+template <class T> T* to_device(T* src, int size);
+
+void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
+		   double* gpu_x_c, double* gpu_x_n, double* gpu_x_e,
+		   int rows_gpu, int total_iters);
+
+void solve(double* A, double* b, int niter, double tol);

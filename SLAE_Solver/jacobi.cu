@@ -1,8 +1,6 @@
 #include "jacobi.h"
 
-using namespace solver;
-
-__device__ double jacobi::abs(double number) {
+__device__ double gpu_abs(double number) {
   if (number < 0) {
     return -number;
   } else {
@@ -21,23 +19,29 @@ __device__ double jacobi::abs(double number) {
    @param n           Coefficient matrix size.
    @param rel         Relaxation coefficient.
 */
-__global__ void jacobi::solve(double* A, double* b,
-			      double* x_c, double* x_n,
-			      uint32_t n, float rel) {
-  uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-  if (idx < n) {
-    double sigma = 0;
+__global__ void run_jacobi(double* A, double* b,
+			   double* x_c, double* x_n,
+			   int rows, int cols,
+			   int first_row_block, double rel) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  int current_row = first_row_block + idx;
+  double* sigma = new double[1];
+
+  if (idx < rows) {
+    *sigma = 0.0;
     //Indicates which row must be computed by the current thread.
-    uint32_t index = idx * n;
-    for (uint32_t j = 0; j < n; ++j) {
+    int index = idx * cols;
+    for (int j = 0; j < cols; ++j) {
       //Ensures not to use a diagonal value when computing.
-      if (idx != j) {
-	sigma += A[index + j] * x_c[j];
+      if (current_row != j) {
+	*sigma += A[index + j] * x_c[j];
       }
     }
-    x_n[idx] = (b[idx] - sigma) / A[index + idx];
-    x_n[idx] = (double)rel * x_n[idx] + (double)(1 - rel) * x_c[idx];
+
+    x_n[current_row] = (b[current_row]- *sigma) / A[index + current_row];
+    x_n[current_row] = rel * x_n[current_row] + (1.0 - rel) * x_c[current_row];
   }
+  delete[] sigma;
 }
 
 /**
@@ -53,10 +57,10 @@ __global__ void jacobi::solve(double* A, double* b,
 
    @return None
 */
-__global__ void jacobi::compute_error (double* x_c, double* x_n,
-				       double* x_e, uint32_t n) {
-  uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+__global__ void compute_error (double* x_c, double* x_n,
+			       double* x_e, int n) {
+  int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
-    x_e[idx] = abs(x_n[idx] - x_c[idx]);
+    x_e[idx] = gpu_abs(x_n[idx] - x_c[idx]);
   }
 }

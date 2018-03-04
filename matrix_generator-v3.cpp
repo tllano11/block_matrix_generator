@@ -189,19 +189,33 @@ int main(int argc, char** argv){
 
   MatrixXd eigenA;
   MatrixXd eigenb;
+  MatrixXd eigenX;
+  MatrixXd eigenDiff;
+  MatrixXd eigenRes;
   //cout << "Eigen A:" << endl;
   eigenA = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, cols_A);
-  //cout << eigenA << endl;
+  eigenX = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
   eigenb = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);
-  cout << "Eigen Solution is: " << endl;
   auto start = high_resolution_clock::now();
-  cout << eigenA.llt().solve(eigenb) << endl;
+  eigenRes = eigenA.colPivHouseholderQr().solve(eigenb);
   auto stop = high_resolution_clock::now();
+  cout << "Eigen Solution is: " << endl;
+  //cout << eigenRes << endl;
   auto duration = duration_cast<milliseconds>(stop - start);
   cout << "Time taken by function: "
          << duration.count() << " milliseconds" << endl;
+
+  eigenDiff = eigenX - eigenRes;
+  eigenDiff = eigenDiff.array().abs();
+  cout << "Max error: " << eigenDiff.maxCoeff() << endl;
+  double relative_error = (eigenA * eigenX - eigenb).norm() / eigenb.norm();
+  cout << "The relative error is: " << relative_error << endl;
+
   eigenA.resize(0,0);
   eigenb.resize(0,0);
+  eigenX.resize(0,0);
+  eigenDiff.resize(0,0);
+  eigenRes.resize(0,0);
 
 #ifdef DEBUG
   cout << string(50, '*') << endl;
@@ -218,8 +232,8 @@ int main(int argc, char** argv){
   print_data(b_ptr, vector_size, 1);
 #endif //DEBUG
   //print_data(A_ptr, rows_A, cols_A);
-  print_data(x_ptr, vector_size, 1);
+  //print_data(x_ptr, vector_size, 1);
   //print_data2(A_ptr, rows_A, cols_A);
-  //solve(A_ptr, b_ptr, niter, tol);
+  solve(A_ptr, b_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
 }
