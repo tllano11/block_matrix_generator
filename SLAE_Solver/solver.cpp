@@ -179,7 +179,7 @@ void solve(double* A, double* b, int niter, double tol){
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
-    // print_vector(x_c, rows_A, 1);
+    print_vector(x_c, rows_A, 1);
 
   } else {
     cout << "Jacobi failed." << endl;
@@ -224,12 +224,12 @@ void solve_mkl(double* A, double* b, int n, double* x) {
     double err_abs[n];
     // Compute err_v = x - b
     vdSub(n, x, b, err_v);
-    cout << "\nMKL error: \n" << endl;
-    print_vector(err_v, n, 1);
+    //cout << "\nMKL error: \n" << endl;
+    //print_vector(err_v, n, 1);
     //compute err_abs = | err_v |
     vdAbs(n, err_v, err_abs);
-    cout << "\nMKL error abs: \n" << endl;
-    print_vector(err_abs, n, 1);
+    //cout << "\nMKL error abs: \n" << endl;
+    //print_vector(err_abs, n, 1);
     int index = cblas_idamax(n, err_abs, 1);
     cout << "\nMKL succeeded with an error of: " << err_abs[index] << endl;
   }
