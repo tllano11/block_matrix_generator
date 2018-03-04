@@ -1,8 +1,11 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -pthread
-CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include -I/opt/include/ ${LAPACK_INCLUDE} -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm
-LDFLAGS = -I./SLAE_Solver
-NVCCFLAGS = -lineinfo -x cu -Wno-deprecated-gpu-targets -std=c++11 -Xcompiler -fPIC
+CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include \
+-I/opt/include/ ${LAPACK_INCLUDE} -lmkl_intel_lp64 -lmkl_sequential \
+-lmkl_core -lpthread -lm
+LDFLAGS = -I./SLAE_Solver -I./src/
+NVCCFLAGS = -lineinfo -x cu -Wno-deprecated-gpu-targets -std=c++11 \
+-Xcompiler -fPIC
 NVCC = nvcc
 DEBUG = -g -DDEBUG
 OUT_PATH = ./bin
@@ -24,7 +27,8 @@ debug: CXXFLAGS += $(DEBUG)
 debug: NVCCFLAGS += $(foreach opt, $(DEBUG), -Xcompiler $(opt))
 debug: all
 
-$(TARGET): $(OUT_PATH)/$(SRC_GEN).o $(OUT_PATH)/$(SRC_SOLVER).o $(OUT_PATH)/$(SRC_GPU_JACOBI).o
+$(TARGET): $(OUT_PATH)/$(SRC_GEN).o $(OUT_PATH)/$(SRC_SOLVER).o \
+$(OUT_PATH)/$(SRC_GPU_JACOBI).o
 	$(CXX) $(CXXFLAGS) $(CUDAFLAGS) -o $@ $^
 
 $(OUT_PATH)/$(SRC_GEN).o: $(SRC_GEN).cpp
