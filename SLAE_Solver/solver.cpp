@@ -224,12 +224,14 @@ void solve_mkl(double* A, double* b, int n, double* x) {
     double err_abs[n];
     // Compute err_v = x - b
     vdSub(n, x, b, err_v);
-    cout << "MKL error: " << endl;
+    cout << "\nMKL error: \n" << endl;
     print_vector(err_v, n, 1);
     //compute err_abs = | err_v |
     vdAbs(n, err_v, err_abs);
+    cout << "\nMKL error abs: \n" << endl;
+    print_vector(err_abs, n, 1);
     int index = cblas_idamax(n, err_abs, 1);
-    cout << "MKL succeeded with an error of: " << err_abs[index-1] << endl;
+    cout << "\nMKL succeeded with an error of: " << err_abs[index] << endl;
   }
 }
 
