@@ -257,7 +257,7 @@ int main(int argc, char** argv){
   //print_data(x_ptr, vector_size, 1);
   //solve_eigen();
   solve_bicgstab();
-  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 
   delete A_ptr;
   delete b_ptr;

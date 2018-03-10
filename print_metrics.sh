@@ -9,7 +9,7 @@ function get_jacobi_metrics {
     declare -r cublas_vals=$(grep -R cublas $log | awk '{print $5}')
     declare -r jacobi_err=$(grep -R jacobi_err $log | awk '{print $3}')
     declare -r jacobi_iters=$(grep -R jacobi_iters $log | awk '{print $3}')
-    declare etime=0
+    declare etime='0'
 
     for val in $jacobi_vals; do
 	etime+=" + $val"
