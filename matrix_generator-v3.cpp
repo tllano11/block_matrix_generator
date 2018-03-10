@@ -13,6 +13,7 @@
 #include <condition_variable>
 #include "solver.h"
 #include <Eigen/Dense>
+#include <Eigen/IterativeLinearSolvers>
 #include <chrono>
 
 #define ERROR 1
@@ -145,6 +146,18 @@ void solve_eigen(){
 
 }
 
+void solve_bicgstab(){
+	MatrixXd A = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
+  MatrixXd x = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
+  MatrixXd b = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);	
+	BiCGSTAB<Matrix<double,Dynamic,Dynamic,RowMajor> > solver;
+	solver.compute(A);
+	x = solver.solve(b);
+	cout << "#iterations:     " << solver.iterations() << endl;
+  cout << "estimated error: " << solver.error()      << endl;
+	cout << "Eigen solution:	" << x << endl;
+}
+
 int main(int argc, char** argv){
 
   int opt, rows_per_thread, filename_length, number_threads, niter;
@@ -234,6 +247,7 @@ int main(int argc, char** argv){
   //print_data2(A_ptr, rows_A, cols_A);
   solve(A_ptr, b_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
-  solve_eigen();
-  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  //solve_eigen();
+	solve_bicgstab();
+  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 }
