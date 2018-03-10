@@ -148,7 +148,7 @@ void solve_bicgstab(){
   MatrixXd b = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);
   MatrixXd x_real = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
   BiCGSTAB<Matrix<double,Dynamic,Dynamic,RowMajor> > solver;
-  cout << nbThreads() << " OMP threads will be used for Eigen" << endl;
+  cout << "\neigen_omp_threads = " << nbThreads() << endl;
   auto start = high_resolution_clock::now();
   solver.compute(A);
   x = solver.solve(b);
