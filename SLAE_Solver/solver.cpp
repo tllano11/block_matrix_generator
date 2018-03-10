@@ -203,7 +203,7 @@ void solve_mkl(double* A, double* b, int n, double* x) {
   // A's dimension
   int lda = n;
   // b's dimension
-  int ldb = n;
+  int ldb = nrhs;
   // Will contain the pivot indices
   int ipiv[n];
   // Wheter mkl failed or succeeded
@@ -211,7 +211,7 @@ void solve_mkl(double* A, double* b, int n, double* x) {
 
   // Solve system
   double start = dsecnd();
-  dgesv(&n, &nrhs, A, &lda, ipiv, b, &ldb, &info);
+  info = LAPACKE_dgesv(LAPACK_ROW_MAJOR, n, nrhs, A, lda, ipiv, b, ldb);
   cout << "Elapsed mkl_dgesv Time = " << dsecnd() - start << endl;
 
   cout << "\nMKL results:\n" << endl;

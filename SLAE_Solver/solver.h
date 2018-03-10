@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cuda_runtime_api.h>
 #include <cublas_v2.h>
+#include "mkl_lapacke.h"
 #include "mkl.h"
 #include "jacobi.h"
 
