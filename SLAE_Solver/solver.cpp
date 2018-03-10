@@ -173,7 +173,6 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
 
   if (*max_err < tol) {
     cout << "\njacobi_success = yes" << endl;
-    cout << "\njacobi_err = " << *max_err << endl;
     cout << "\njacobi_iters = " << count << endl;
     if ((count % 2) == 0) {
       gassert(cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
@@ -187,7 +186,7 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     double jacobi_norm = cblas_dnrm2(rows_A, jacobi_err, 1);
     double x_norm = cblas_dnrm2(rows_A, x_ptr, 1);
     double rel_jacobi_err = jacobi_norm / x_norm;
-    cout << "Jacobi relative error is: " << rel_jacobi_err << endl;
+    cout << "\njacobi_err = " << rel_jacobi_err << endl;
 
   } else {
     cout << "\njacobi_success = no" << endl;
@@ -225,7 +224,6 @@ void solve_mkl(double* A, double* b, int n, double* x) {
   info = LAPACKE_dsgesv(LAPACK_ROW_MAJOR, n, nrhs, A, lda, ipiv, b, ldb, x_a, ldx, &iter);
   cout << "\nmkl_time = " << dsecnd() - start  << endl;
 
-  cout << "\nMKL results:\n" << endl;
   if(info > 0) {
     cout << "\nmkl_success = no" << endl;
   } else {

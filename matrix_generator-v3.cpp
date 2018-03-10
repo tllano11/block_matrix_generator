@@ -125,17 +125,17 @@ void solve_eigen(){
   auto start = high_resolution_clock::now();
   eigenRes = eigenA.colPivHouseholderQr().solve(eigenb);
   auto stop = high_resolution_clock::now();
-  //cout << "\nEigen Results: " << endl;
-  //cout << eigenRes << endl;
+  cerr << "\neigen_result_vector\n" << endl;
+  cerr << eigenRes << endl;
   auto duration = duration_cast<milliseconds>(stop - start);
-  cout << "Eigne time was: "
-         << duration.count() << " milliseconds" << endl;
+  cout << "\neigen_time = "
+         << duration.count() << endl;
 
   //eigenDiff = eigenX - eigenRes;
   //eigenDiff = eigenDiff.array().abs();
   //cout << "Max absolute X error: " << eigenDiff.maxCoeff() << endl;
   double relative_error = (eigenX - eigenRes).norm() / eigenX.norm();
-  cout << "Eigen relative error: " << relative_error << endl;
+  cout << "\neigen_err = " << relative_error << endl;
 
   eigenA.resize(0,0);
   eigenb.resize(0,0);
@@ -235,7 +235,7 @@ int main(int argc, char** argv){
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
   solve_eigen();
-  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 
   delete A_ptr;
   delete b_ptr;
