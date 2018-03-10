@@ -39,6 +39,16 @@ function get_mkl_metrics {
     echo "$n $mkl_iters" >> $odir/mkl_iters.dat
 }
 
+function get_eigen_metrics {
+    declare -r eigen_err=$(grep -R eigen_err $log | awk '{print $3}')
+    declare -r eigen_iters=$(grep -R eigen_iters $log | awk '{print $3}')
+    declare etime="$(grep -R eigen_time $log | awk '{print $3}')"
+
+    echo "$n $etime" >> $odir/eigen_time.dat
+    echo "$n $eigen_err" >> $odir/eigen_err.dat
+    echo "$n $eigen_iters" >> $odir/eigen_iters.dat
+}
+
 function main {
     declare -r jacobi_success=$(grep -R jacobi_success $log | awk '{print $3}')
     declare -r mkl_success=$(grep -R mkl_success $log | awk '{print $3}')
@@ -47,6 +57,7 @@ function main {
     fi
     get_jacobi_metrics
     get_mkl_metrics
+    get_eigen_metrics
 }
 
 main

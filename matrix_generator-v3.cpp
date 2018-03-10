@@ -154,9 +154,9 @@ void solve_bicgstab(){
   x = solver.solve(b);
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<milliseconds>(stop - start);
-  cout << "Duration: " << duration.count() << " ms" << endl;
-  cout << "# iterations: " << solver.iterations() << endl;
-  cout << "estimated error: " << solver.error() << endl;
+  cout << "\neigen_time = " << duration.count() << " ms" << endl;
+  cout << "\neigen_iters = " << solver.iterations() << endl;
+  cout << "\nestimated error: " << solver.error() << endl;
   double relative_error = (x_real - x).norm() / x_real.norm();
   cout << "\neigen_err = " << relative_error << endl;
   //cout << "Eigen solution: " << x << endl;
