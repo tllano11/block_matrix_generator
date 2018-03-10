@@ -27,9 +27,9 @@ template <class T> T* to_device(T* src, int size) {
 void print_vector(double* vector, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j){
-      cout << vector[i * cols + j] << " ";
+      cerr << vector[i * cols + j] << " ";
     }
-    cout << endl;
+    cerr << endl;
   }
 }
 
@@ -172,17 +172,19 @@ void solve(double* A, double* b, int niter, double tol){
   }
 
   if (*max_err < tol) {
-    cout << "Jacobi succeeded in " << count << " iterations with an error of "
-	 << *max_err << endl;
+    cout << "\njacobi_success = yes" << endl;
+    cout << "\njacobi_err = " << *max_err << endl;
+    cout << "\njacobi_iters = " << count << endl;
     if ((count % 2) == 0) {
       gassert(cudaMemcpy(x_c, gpu_x_n, cols_A*double_size, cudaMemcpyDeviceToHost));
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
+    cerr << "\njacobi_err_vector\n" << endl;
     print_vector(x_c, rows_A, 1);
 
   } else {
-    cout << "Jacobi failed." << endl;
+    cout << "\njacobi_success = no" << endl;
   }
 
   gassert(cudaEventDestroy(start));
@@ -208,30 +210,31 @@ void solve_mkl(double* A, double* b, int n, double* x) {
   int ipiv[n];
   // Wheter mkl failed or succeeded
   int info;
+  double x_a[n];
+  int ldx = nrhs;
+  int iter;
 
   // Solve system
   double start = dsecnd();
-  info = LAPACKE_dgesv(LAPACK_ROW_MAJOR, n, nrhs, A, lda, ipiv, b, ldb);
-  cout << "Elapsed mkl_dgesv Time = " << dsecnd() - start << endl;
+  info = LAPACKE_dsgesv(LAPACK_ROW_MAJOR, n, nrhs, A, lda, ipiv, b, ldb, x_a, ldx, &iter);
+  cout << "\nmkl_time = " << dsecnd() - start  << endl;
 
-  cout << "\nMKL results:\n" << endl;
   if(info > 0) {
-    cout << "The solution could not be computed." << endl;
+    cout << "\nmkl_success = no" << endl;
   } else {
-    print_vector(b, n, 1);
-
+    cout << "\nmkl_success = yes" << endl;
     double err_v[n];
     double err_abs[n];
     // Compute err_v = x - b
-    vdSub(n, x, b, err_v);
-    //cout << "\nMKL error: \n" << endl;
-    //print_vector(err_v, n, 1);
-    //compute err_abs = | err_v |
+    vdSub(n, x, x_a, err_v);
+    // Compute err_abs = | err_v |
     vdAbs(n, err_v, err_abs);
-    //cout << "\nMKL error abs: \n" << endl;
-    //print_vector(err_abs, n, 1);
+    // Find maximum error
     int index = cblas_idamax(n, err_abs, 1);
-    cout << "\nMKL succeeded with an error of: " << err_abs[index] << endl;
+    cerr << "\nmkl_err_vector\n" << endl;
+    print_vector(err_abs, n, 1);
+    cout << "\nmkl_error = " << err_abs[index] << endl;
+    cout << "\nmkl_iters = " << iter << endl;
   }
 }
 
