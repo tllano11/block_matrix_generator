@@ -1,7 +1,8 @@
 #!/bin/bash
 
 declare -r log=$1
-declare -r n=$(echo $log | tr -cd '[[:digit:]]')
+declare -r odir=$2
+declare -r n=$(basename $log | tr -cd '[[:digit:]]')
 
 function get_jacobi_metrics {
     declare -r jacobi_vals=$(grep -R run_jacobi $log | awk '{print $5}')
@@ -23,9 +24,9 @@ function get_jacobi_metrics {
 	etime+=" + $val"
     done
 
-    echo "$n $(echo $etime | bc)" >> jacobi_time.dat
-    echo "$n $jacobi_err" >> jacobi_err.dat
-    echo "$n $jacobi_iters" >> jacobi_iters.dat
+    echo "$n $(echo $etime | bc)" >> $odir/jacobi_time.dat
+    echo "$n $jacobi_err" >> $odir/jacobi_err.dat
+    echo "$n $jacobi_iters" >> $odir/jacobi_iters.dat
 }
 
 function get_mkl_metrics {
@@ -33,9 +34,9 @@ function get_mkl_metrics {
     declare -r mkl_iters=$(grep -R mkl_iters $log | awk '{print $3}')
     declare etime="$(grep -R mkl_time $log | awk '{print $3}')*1000"
 
-    echo "$n $(echo $etime | bc)" >> mkl_time.dat
-    echo "$n $mkl_err" >> mkl_err.dat
-    echo "$n $mkl_iters" >> mkl_iters.dat
+    echo "$n $(echo $etime | bc)" >> $odir/mkl_time.dat
+    echo "$n $mkl_err" >> $odir/mkl_err.dat
+    echo "$n $mkl_iters" >> $odir/mkl_iters.dat
 }
 
 function main {
