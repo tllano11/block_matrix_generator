@@ -114,11 +114,7 @@ void generate_system(int rows_per_thread, int number_threads, int thread_id){
 
 void solve_eigen(){
 
-  MatrixXd eigenA;
-  MatrixXd eigenb;
-  MatrixXd eigenX;
-  // MatrixXd eigenDiff;
-  MatrixXd eigenRes;
+  MatrixXd eigenA, eigenb, eigenX, eigenRes;
   //cout << "Eigen A:" << endl;
   eigenA = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
   eigenX = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
