@@ -233,11 +233,11 @@ void solve_mkl(double* A, double* b, int n, double* x) {
     vdSub(n, x, x_a, err_v);
     // Compute err_abs = | err_v |
     vdAbs(n, err_v, err_abs);
-    // Find maximum error
-    int index = cblas_idamax(n, err_abs, 1);
-    cerr << "\nmkl_err_vector\n" << endl;
-    print_vector(err_abs, n, 1);
-    cout << "\nmkl_err = " << err_abs[index] << endl;
+    // Find relative perturbation
+    double x_a_norm = cblas_dnrm2(n, err_abs, 1);
+    double x_norm = cblas_dnrm2(n, x, 1);
+    double relative_err = x_a_norm / x_norm;
+    cout << "\nmkl_err = " << relative_err << endl;
     cout << "\nmkl_iters = " << iter << endl;
   }
 }
