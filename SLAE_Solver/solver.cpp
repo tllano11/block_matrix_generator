@@ -179,8 +179,7 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
-    cerr << "\njacobi_err_vector\n" << endl;
-    print_vector(x_c, rows_A, 1);
+    //print_vector(x_c, rows_A, 1);
     double jacobi_err[rows_A];
     vdSub(rows_A, x_ptr, x_c, jacobi_err);
     double jacobi_norm = cblas_dnrm2(rows_A, jacobi_err, 1);

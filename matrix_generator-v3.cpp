@@ -143,15 +143,27 @@ void solve_eigen(){
 }
 
 void solve_bicgstab(){
-	MatrixXd A = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
+  MatrixXd A = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
   MatrixXd x = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
-  MatrixXd b = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);	
-	BiCGSTAB<Matrix<double,Dynamic,Dynamic,RowMajor> > solver;
-	solver.compute(A);
-	x = solver.solve(b);
-	cout << "#iterations:     " << solver.iterations() << endl;
-  cout << "estimated error: " << solver.error()      << endl;
-	cout << "Eigen solution:	" << x << endl;
+  MatrixXd b = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);
+  MatrixXd x_real = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
+  BiCGSTAB<Matrix<double,Dynamic,Dynamic,RowMajor> > solver;
+  cout << nbThreads() << " OMP threads will be used for Eigen" << endl;
+  auto start = high_resolution_clock::now();
+  solver.compute(A);
+  x = solver.solve(b);
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<milliseconds>(stop - start);
+  cout << "Duration: " << duration.count() << " ms" << endl;
+  cout << "# iterations: " << solver.iterations() << endl;
+  cout << "estimated error: " << solver.error() << endl;
+  double relative_error = (x_real - x).norm() / x_real.norm();
+  cout << "\neigen_err = " << relative_error << endl;
+  //cout << "Eigen solution: " << x << endl;
+
+  A.resize(0,0);
+  x.resize(0,0);
+  b.resize(0,0);
 }
 
 int main(int argc, char** argv){
@@ -243,8 +255,9 @@ int main(int argc, char** argv){
   //print_data2(A_ptr, rows_A, cols_A);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
-  solve_eigen();
-  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  //solve_eigen();
+  solve_bicgstab();
+  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 
   delete A_ptr;
   delete b_ptr;
