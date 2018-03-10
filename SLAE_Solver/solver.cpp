@@ -238,7 +238,7 @@ void solve_mkl(double* A, double* b, int n, double* x) {
     int index = cblas_idamax(n, err_abs, 1);
     cerr << "\nmkl_err_vector\n" << endl;
     print_vector(err_abs, n, 1);
-    cout << "\nmkl_error = " << err_abs[index] << endl;
+    cout << "\nmkl_err = " << err_abs[index] << endl;
     cout << "\nmkl_iters = " << iter << endl;
   }
 }
