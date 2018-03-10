@@ -83,7 +83,7 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
   }
 }
 
-void solve(double* A, double* b, int niter, double tol){
+void solve(double* A, double* b, double* x_ptr, int niter, double tol){
 
 #ifdef DEBUG
   cout << string(50, '*') << endl;
@@ -179,7 +179,13 @@ void solve(double* A, double* b, int niter, double tol){
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
-    print_vector(x_c, rows_A, 1);
+    //print_vector(x_c, rows_A, 1);
+    double jacobi_err[rows_A];
+    vdSub(rows_A, x_ptr, x_c, jacobi_err);
+    double jacobi_norm = cblas_dnrm2(rows_A, jacobi_err, 1);
+    double x_norm = cblas_dnrm2(rows_A, x_ptr, 1);
+    double rel_jacobi_err = jacobi_norm / x_norm;
+    cout << "Jacobi relative error is: " << rel_jacobi_err << endl;
 
   } else {
     cout << "Jacobi failed." << endl;
@@ -194,7 +200,7 @@ void solve(double* A, double* b, int niter, double tol){
   gassert(cudaFree(gpu_x_c));
   cublasDestroy(handle);
   delete max_err_incx;
-  delete[] x_c;
+  delete x_c;
 }
 
 void solve_mkl(double* A, double* b, int n, double* x) {
@@ -218,7 +224,7 @@ void solve_mkl(double* A, double* b, int n, double* x) {
   if(info > 0) {
     cout << "The solution could not be computed." << endl;
   } else {
-    print_vector(b, n, 1);
+    //print_vector(b, n, 1);
 
     double err_v[n];
     double err_abs[n];

@@ -116,7 +116,7 @@ void solve_eigen(){
   MatrixXd eigenA;
   MatrixXd eigenb;
   MatrixXd eigenX;
-  MatrixXd eigenDiff;
+  // MatrixXd eigenDiff;
   MatrixXd eigenRes;
   //cout << "Eigen A:" << endl;
   eigenA = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
@@ -125,22 +125,22 @@ void solve_eigen(){
   auto start = high_resolution_clock::now();
   eigenRes = eigenA.colPivHouseholderQr().solve(eigenb);
   auto stop = high_resolution_clock::now();
-  cout << "\nEigen Results: " << endl;
-  cout << eigenRes << endl;
+  //cout << "\nEigen Results: " << endl;
+  //cout << eigenRes << endl;
   auto duration = duration_cast<milliseconds>(stop - start);
-  cout << "Time taken by function: "
+  cout << "Eigne time was: "
          << duration.count() << " milliseconds" << endl;
 
-  eigenDiff = eigenX - eigenRes;
-  eigenDiff = eigenDiff.array().abs();
-  cout << "Max absolute X error: " << eigenDiff.maxCoeff() << endl;
-  double relative_error = (eigenA * eigenX - eigenb).norm() / eigenb.norm();
-  cout << "Relative b error: " << relative_error << endl;
+  //eigenDiff = eigenX - eigenRes;
+  //eigenDiff = eigenDiff.array().abs();
+  //cout << "Max absolute X error: " << eigenDiff.maxCoeff() << endl;
+  double relative_error = (eigenX - eigenRes).norm() / eigenX.norm();
+  cout << "Eigen relative error: " << relative_error << endl;
 
   eigenA.resize(0,0);
   eigenb.resize(0,0);
   eigenX.resize(0,0);
-  eigenDiff.resize(0,0);
+  // eigenDiff.resize(0,0);
   eigenRes.resize(0,0);
 
 }
@@ -232,8 +232,12 @@ int main(int argc, char** argv){
   //print_data(A_ptr, rows_A, cols_A);
   //print_data(x_ptr, vector_size, 1);
   //print_data2(A_ptr, rows_A, cols_A);
-  solve(A_ptr, b_ptr, niter, tol);
+  solve(A_ptr, b_ptr, x_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
   solve_eigen();
-  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+
+  delete A_ptr;
+  delete b_ptr;
+  delete x_ptr;
 }

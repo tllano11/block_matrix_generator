@@ -33,6 +33,6 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 		   double* gpu_x_c, double* gpu_x_n, double* gpu_x_e,
 		   int rows_gpu, int total_iters);
 
-void solve(double* A, double* b, int niter, double tol);
+void solve(double* A, double* b, double* x, int niter, double tol);
 
 void solve_mkl(double* A, double* b, int n, double* x);
