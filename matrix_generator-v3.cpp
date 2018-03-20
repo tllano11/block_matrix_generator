@@ -101,8 +101,8 @@ void generate_system(int rows_per_thread, int number_threads, int thread_id){
     rows_per_thread = rows_A - initial_thread_row;
   }
   /*print_mutex.lock();
-  cout << "thread_id: " << thread_id << " initial_thread_row: " << initial_thread_row << " rows_per_thread: " << rows_per_thread << endl;
-  print_mutex.unlock();*/
+    cout << "thread_id: " << thread_id << " initial_thread_row: " << initial_thread_row << " rows_per_thread: " << rows_per_thread << endl;
+    print_mutex.unlock();*/
   double *A_ptr_local = A_ptr + initial_thread_row * cols_A;
   generate_A(A_ptr_local, rows_per_thread, initial_thread_row);
   double *x_ptr_local = x_ptr + initial_thread_row;
@@ -126,7 +126,7 @@ void solve_eigen(){
   cerr << eigenRes << endl;
   auto duration = duration_cast<milliseconds>(stop - start);
   cout << "\neigen_time = "
-         << duration.count() << endl;
+       << duration.count() << endl;
 
   //eigenDiff = eigenX - eigenRes;
   //eigenDiff = eigenDiff.array().abs();
@@ -167,10 +167,9 @@ void solve_bicgstab(){
 }
 
 int main(int argc, char** argv){
-
   int opt, rows_per_thread, filename_length, number_threads, niter;
   double tol;
-  char* filename;
+  //char* filename;
   //lck = new unique_lock(mult_mutex);
 
   //TODO Check arguments parser
@@ -181,43 +180,43 @@ int main(int argc, char** argv){
     while ((opt = getopt(argc, argv, "n:f:d:t:r:i:e:h")) != EOF) {
       switch (opt) {
       case 'n':
-	cols_A = stoi(optarg);
-	rows_A = stoi(optarg);
-	vector_size = stoi(optarg);
-	break;
+        cols_A = stoi(optarg);
+        rows_A = stoi(optarg);
+        vector_size = stoi(optarg);
+        break;
       case 'f':
-	filename = optarg;
-	break;
+        filename = optarg;
+        break;
       case 't':
-	number_threads = stoi(optarg);
-	thread_counter = stoi(optarg);
-	break;
+        number_threads = stoi(optarg);
+        thread_counter = stoi(optarg);
+        break;
       case 'r':
-	rel = stod(optarg);
-	break;
+        rel = stod(optarg);
+        break;
       case 'i':
-	niter = stoi(optarg);
-	break;
+        niter = stoi(optarg);
+        break;
       case 'e':
-	tol = stod(optarg);
-	break;
+        tol = stod(optarg);
+        break;
       case 'd':
-	delta = stof(optarg);
-	break;
+        delta = stof(optarg);
+        break;
       case 'h':
-	cout << "\nUsage:\n"
-	     << "\r\t-t <Number of threads>\n"
-	     << "\r\t-s <Matrix (NxN) size>\n"
-	     << "\r\t-f <Output filename>\n"
-	     << "\r\t-d <delta value>\n"
-	     << endl;
-	return 0;
+        cout << "\nUsage:\n"
+             << "\r\t-t <Number of threads>\n"
+             << "\r\t-s <Matrix (NxN) size>\n"
+             << "\r\t-f <Output filename>\n"
+             << "\r\t-d <delta value>\n"
+             << endl;
+        return 0;
       case '?':
-	cerr << "Use option -h to display a help message." << endl;
-	return 1;
+        cerr << "Use option -h to display a help message." << endl;
+        return 1;
       default:
-	cerr << "Use option -h to display a help message." << endl;
-	return 1;
+        cerr << "Use option -h to display a help message." << endl;
+        return 1;
       }
     }
   }

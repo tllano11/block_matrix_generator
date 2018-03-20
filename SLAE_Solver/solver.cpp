@@ -185,10 +185,11 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     double jacobi_norm = cblas_dnrm2(rows_A, jacobi_err, 1);
     double x_norm = cblas_dnrm2(rows_A, x_ptr, 1);
     double rel_jacobi_err = jacobi_norm / x_norm;
-    cout << "\njacobi_err = " << rel_jacobi_err << endl;
+    cout << "\njacobi_rel_err = " << rel_jacobi_err << endl;
 
   } else {
     cout << "\njacobi_success = no" << endl;
+    cout << "\njacobi_err = " << *max_err << endl;
   }
 
   gassert(cudaEventDestroy(start));
