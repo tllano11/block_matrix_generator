@@ -142,13 +142,14 @@ void solve_eigen(){
 
 }
 
-void solve_bicgstab(){
+void solve_bicgstab(double tol){
   MatrixXd A = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
   MatrixXd x = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
   MatrixXd b = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);
   MatrixXd x_real = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
   BiCGSTAB<Matrix<double,Dynamic,Dynamic,RowMajor> > solver;
-  cout << "\neigen_omp_threads = " << nbThreads() << endl;
+  solver.setTolerance(tol);
+  //cout << "\neigen_omp_threads = " << nbThreads() << endl;
   auto start = high_resolution_clock::now();
   solver.compute(A);
   x = solver.solve(b);
@@ -156,8 +157,9 @@ void solve_bicgstab(){
   auto duration = duration_cast<milliseconds>(stop - start);
   cout << "\neigen_time = " << duration.count() << " ms" << endl;
   cout << "\neigen_iters = " << solver.iterations() << endl;
-  cout << "\nestimated error: " << solver.error() << endl;
+  //cout << "\nestimated error: " << solver.error() << endl;
   double relative_error = (x_real - x).norm() / x_real.norm();
+  cout << "\neigen tolerance = " << solver.tolerance() << endl;
   cout << "\neigen_err = " << relative_error << endl;
   //cout << "Eigen solution: " << x << endl;
 
@@ -255,8 +257,8 @@ int main(int argc, char** argv){
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
   //print_data(x_ptr, vector_size, 1);
   //solve_eigen();
-  solve_bicgstab();
-  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  //solve_bicgstab(tol);
+  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 
   delete A_ptr;
   delete b_ptr;

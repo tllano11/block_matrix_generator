@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -pthread -fopenmp
+CXXFLAGS = -std=c++11 -pthread -fopenmp
 CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include \
 -I/opt/include/ ${LAPACK_INCLUDE} -lmkl_intel_lp64 -lmkl_sequential \
 -lmkl_core -lpthread -lm
