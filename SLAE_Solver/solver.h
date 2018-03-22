@@ -8,7 +8,6 @@
 #include "mkl_lapacke.h"
 #include "mkl.h"
 #include "jacobi.h"
-#include <iomanip>
 
 extern int rows_A, cols_A;
 extern double rel;

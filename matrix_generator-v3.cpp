@@ -15,7 +15,6 @@
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <chrono>
-#include <iomanip>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -159,16 +158,15 @@ void solve_bicgstab(double tol){
 
   ComputationInfo eigen_success = solver.info();
   if(eigen_success == ComputationInfo::Success){
-    cout << "\neigen_sucess = yes" << endl;
+    cout << "\neigen_success = yes" << endl;
     cout << "\neigen_time = " << duration.count() << " ms" << endl;
     cout << "\neigen_iters = " << solver.iterations() << endl;
     //cout << "\nestimated error: " << solver.error() << endl;
     double relative_error = (x_real - x).norm() / x_real.norm();
-    cout << setprecision(16);
-    cout << "\neigen_rel_err = " << fixed << relative_error << endl;
+    cout << "\neigen_rel_err = " << relative_error << endl;
     //cout << "Eigen solution: " << x << endl;
   }else{
-    cout << "\neigen_sucess = no" << endl;
+    cout << "\neigen_success = no" << endl;
     cout << "\neigen_err = " << solver.error() << endl;
   }
 

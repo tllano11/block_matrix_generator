@@ -1,7 +1,9 @@
 #!/bin/bash
 
+declare -r dir=$1
 declare -r n=$2
-declare -r subdir=$1/$n
+declare -r odir=$1/dat
+declare -r subdir=$dir/$n
 declare -r num_runnings=10
 
 function get_jacobi_metrics {
@@ -23,7 +25,7 @@ function get_jacobi_metrics {
                            ${files[@]})
 
     echo $n $(awk -v success=$jacobi_succeed -v total=$num_runnings \
-                  '{print success/total}') >> $odir/jacobi_succeed.dat
+                  'BEGIN {print success/total}') >> $odir/jacobi_succeed.dat
     echo $n $jacobi_time_avg >> $odir/jacobi_time.dat
     echo $n $jacobi_rel_err_avg >> $odir/jacobi_rel_err.dat
     echo $n $jacobi_iters_avg >> $odir/jacobi_iters.dat
@@ -57,7 +59,7 @@ function get_mkl_metrics {
                         ${files[@]})
 
     echo $n $(awk -v success=$mkl_succeed -v total=$num_runnings \
-                  '{print success/total}') >> $odir/mkl_succeed.dat
+                  'BEGIN {print success/total}') >> $odir/mkl_succeed.dat
     echo $n $mkl_time_avg >> $odir/mkl_time.dat
     echo $n $mkl_rel_err_avg >> $odir/mkl_rel_err.dat
     echo $n $mkl_iters_avg >> $odir/mkl_iters.dat
@@ -91,7 +93,7 @@ function get_eigen_metrics {
                           ${files[@]})
 
     echo $n $(awk -v success=$eigen_succeed -v total=$num_runnings \
-                  '{print success/total}') >> $odir/eigen_succeed.dat
+                  'BEGIN {print success/total}') >> $odir/eigen_succeed.dat
     echo $n $eigen_time_avg >> $odir/eigen_time.dat
     echo $n $eigen_rel_err_avg >> $odir/eigen_rel_err.dat
     echo $n $eigen_iters_avg >> $odir/eigen_iters.dat

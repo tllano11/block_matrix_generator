@@ -185,13 +185,11 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     double jacobi_norm = cblas_dnrm2(rows_A, jacobi_err, 1);
     double x_norm = cblas_dnrm2(rows_A, x_ptr, 1);
     double rel_jacobi_err = jacobi_norm / x_norm;
-    cout << setprecision(16);
-    cout << "\njacobi_rel_err = " << fixed << rel_jacobi_err << endl;
+    cout << "\njacobi_rel_err = " << rel_jacobi_err << endl;
 
   } else {
     cout << "\njacobi_success = no" << endl;
-    cout << setprecision(16);
-    cout << "\njacobi_err = " << fixed << *max_err << endl;
+    cout << "\njacobi_err = " << *max_err << endl;
   }
 
   gassert(cudaEventDestroy(start));
@@ -240,8 +238,7 @@ void solve_mkl(double* A, double* b, int n, double* x) {
     double x_a_norm = cblas_dnrm2(n, err_abs, 1);
     double x_norm = cblas_dnrm2(n, x, 1);
     double relative_err = x_a_norm / x_norm;
-    cout << setprecision(16);
-    cout << "\nmkl_rel_err = " << fixed << relative_err << endl;
+    cout << "\nmkl_rel_err = " << relative_err << endl;
     cout << "\nmkl_iters = " << iter << endl;
   }
 }
