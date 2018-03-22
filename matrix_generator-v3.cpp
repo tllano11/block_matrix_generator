@@ -15,6 +15,7 @@
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <chrono>
+#include <iomanip>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -155,13 +156,21 @@ void solve_bicgstab(double tol){
   x = solver.solve(b);
   auto stop = high_resolution_clock::now();
   auto duration = duration_cast<milliseconds>(stop - start);
-  cout << "\neigen_time = " << duration.count() << " ms" << endl;
-  cout << "\neigen_iters = " << solver.iterations() << endl;
-  //cout << "\nestimated error: " << solver.error() << endl;
-  double relative_error = (x_real - x).norm() / x_real.norm();
-  cout << "\neigen tolerance = " << solver.tolerance() << endl;
-  cout << "\neigen_err = " << relative_error << endl;
-  //cout << "Eigen solution: " << x << endl;
+
+  ComputationInfo eigen_success = solver.info();
+  if(eigen_success == ComputationInfo::Success){
+    cout << "\neigen_sucess = yes" << endl;
+    cout << "\neigen_time = " << duration.count() << " ms" << endl;
+    cout << "\neigen_iters = " << solver.iterations() << endl;
+    //cout << "\nestimated error: " << solver.error() << endl;
+    double relative_error = (x_real - x).norm() / x_real.norm();
+    cout << setprecision(16);
+    cout << "\neigen_rel_err = " << fixed << relative_error << endl;
+    //cout << "Eigen solution: " << x << endl;
+  }else{
+    cout << "\neigen_sucess = no" << endl;
+    cout << "\neigen_err = " << solver.error() << endl;
+  }
 
   A.resize(0,0);
   x.resize(0,0);
@@ -171,23 +180,18 @@ void solve_bicgstab(double tol){
 int main(int argc, char** argv){
   int opt, rows_per_thread, filename_length, number_threads, niter;
   double tol;
-  //char* filename;
-  //lck = new unique_lock(mult_mutex);
 
   //TODO Check arguments parser
   if(argc < 2){
     cerr << "Not enough arguments" << endl;
     return 1;
   }else{
-    while ((opt = getopt(argc, argv, "n:f:d:t:r:i:e:h")) != EOF) {
+    while ((opt = getopt(argc, argv, "n:d:t:r:i:e:h")) != EOF) {
       switch (opt) {
       case 'n':
         cols_A = stoi(optarg);
         rows_A = stoi(optarg);
         vector_size = stoi(optarg);
-        break;
-      case 'f':
-        filename = optarg;
         break;
       case 't':
         number_threads = stoi(optarg);
@@ -253,12 +257,10 @@ int main(int argc, char** argv){
 #endif //DEBUG
   //print_data(A_ptr, rows_A, cols_A);
   //print_data(x_ptr, vector_size, 1);
-  //print_data2(A_ptr, rows_A, cols_A);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
-  //print_data(x_ptr, vector_size, 1);
   //solve_eigen();
-  //solve_bicgstab(tol);
-  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  solve_bicgstab(tol);
+  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 
   delete A_ptr;
   delete b_ptr;

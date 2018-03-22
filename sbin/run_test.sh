@@ -11,7 +11,7 @@ declare -r error="1e-14"
 #                     "10000" "12000" "14000" "16000"
 #                     "18000" "20000" "22000" "24000"
 #                   )
-declare -a sizes=( "1000" "2000" )
+declare -a sizes=( "100" "200" )
 
 function main {
   declare cmd
@@ -26,6 +26,7 @@ function main {
       sleep 5
     done
     $m_exe $wdir/$n
+  done
 }
 
 main
