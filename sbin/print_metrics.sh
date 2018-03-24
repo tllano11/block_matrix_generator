@@ -10,7 +10,7 @@ function get_jacobi_metrics {
   jacobi_succeed=$(grep -R "jacobi_success = yes" $subdir | wc -l)
   jacobi_fails=$((num_runnings - jacobi_succeed))
 
-  if [[ $jacobi_succeed > 0 ]]; then
+  if (( $jacobi_succeed > 0 )); then
     files=($(grep -R -l "jacobi_success = yes" $subdir))
     jacobi_time_avg=$(awk -v n="$jacobi_succeed" \
                           '/run_jacobi/ || /compute_error/ || /cublas/ {sum+=$5} END {print sum/n}' \
@@ -31,7 +31,7 @@ function get_jacobi_metrics {
     echo $n $jacobi_iters_avg >> $odir/jacobi_iters.dat
   fi
 
-  if [[ $jacobi_succeed < $num_runnings ]]; then
+  if (( $jacobi_succeed < 10 )); then
     files=($(grep -R -l "jacobi_success = no" $subdir))
     jacobi_err=$(awk -v n="$jacobi_fails" \
                      '/jacobi_err/ {sum+=$3} END {print sum/n}' \
@@ -44,7 +44,7 @@ function get_mkl_metrics {
   mkl_succeed=$(grep -R "mkl_success = yes" $subdir | wc -l)
   mkl_fails=$((num_runnings - mkl_succeed))
 
-  if [[ $mkl_succeed > 0 ]]; then
+  if (( $mkl_succeed > 0 )); then
     files=($(grep -R -l "mkl_success = yes" $subdir))
     mkl_time_avg=$(awk -v n="$mkl_succeed" \
                        '/mkl_time/ {sum+=$3} END {print (sum*1000)/n}' \
@@ -65,7 +65,7 @@ function get_mkl_metrics {
     echo $n $mkl_iters_avg >> $odir/mkl_iters.dat
   fi
 
-  if [[ $mkl_succeed < $num_runnings ]]; then
+  if (( $mkl_succeed < $num_runnings )); then
     files=($(grep -R -l "mkl_success = no" $subdir))
     mkl_err=$(awk -v n="$mkl_fails" \
                   '/mkl_err/ {sum+=$3} END {print sum/n}' \
@@ -78,7 +78,7 @@ function get_eigen_metrics {
   eigen_succeed=$(grep -R "eigen_success = yes" $subdir | wc -l)
   eigen_fails=$((num_runnings - eigen_succeed))
 
-  if [[ $eigen_succeed > 0 ]]; then
+  if (( $eigen_succeed > 0 )); then
     files=($(grep -R -l "eigen_success = yes" $subdir))
     eigen_time_avg=$(awk -v n="$eigen_succeed" \
                          '/eigen_time/ {sum+=$3} END {print sum/n}' \
@@ -99,7 +99,7 @@ function get_eigen_metrics {
     echo $n $eigen_iters_avg >> $odir/eigen_iters.dat
   fi
 
-  if [[ $eigen_succeed < $num_runnings ]]; then
+  if (( $eigen_succeed < $num_runnings )); then
     files=($(grep -R -l "eigen_success = no" $subdir))
     eigen_err=$(awk -v n="$eigen_fails" \
                     '/eigen_err/ {sum+=$3} END {print sum/n}' \
