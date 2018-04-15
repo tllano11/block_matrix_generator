@@ -57,7 +57,7 @@ void launch_jacobi(double* A, double* gpu_A, double* gpu_b,
 
     gassert(cudaEventRecord(start));
     run_jacobi <<< bpg, tpb >>> (gpu_A, gpu_b,
-				 gpu_x_c, gpu_x_n,
+				 gpu_x_c, gpu_x_n, gpu_x_e,
 				 rows_gpu, cols_A,
 				 first_row_block, rel);
     gassert(cudaEventRecord(stop));
@@ -100,6 +100,8 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
   // Pointers to host memory
   double* x_c = new double[cols_A]; // x current
   double* x_n = new double[cols_A];
+  double* x_e = new double[cols_A];
+  fill_n(x_e, cols_A, 1);
 
   cudaDeviceProp props;
   cudaGetDeviceProperties(&props, 0);
@@ -123,7 +125,7 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
   // Pointers to GPU memory
   double* gpu_x_c = to_device<double>(x_c, cols_A);
   double* gpu_x_n = to_device<double>(x_n, cols_A);
-  double* gpu_x_e = cuda_allocate<double>(rows_A);
+  double* gpu_x_e = to_device<double>(x_e, cols_A);
   double* gpu_A = cuda_allocate<double>(rows_gpu * cols_A);
   double* gpu_b = to_device<double>(b, rows_A);
 
@@ -139,39 +141,35 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
 
   // Control whether the algorithm fails or succeeds
   int count = 0;
-  double error = tol + 1;
-  double* max_err = &error;
+  double err = tol + 1;
+  double* max_err = &err;
+  double* norm_x_n = new double();
 
   int total_iters = ceil(rows_A/(double)rows_gpu);
   //cout << "Total iters: " << total_iters << endl;
 
-#ifdef DEBUG
-  double* x_e = new double[rows_A];
-#endif //DEBUG
-
-  while ( (*max_err > tol) && (count < niter) ) {
+  while ( (err > tol) && (count < niter) ) {
+    //cout << "Iter: " << count << endl;
     if ((count % 2) == 0) {
       launch_jacobi(A, gpu_A, gpu_b, gpu_x_c, gpu_x_n , gpu_x_e, rows_gpu, total_iters);
+      assert(CUBLAS_STATUS_SUCCESS == cublasDnrm2(handle, cols_A, gpu_x_n, 1, norm_x_n));
     } else {
       launch_jacobi(A, gpu_A, gpu_b, gpu_x_n, gpu_x_c, gpu_x_e, rows_gpu, total_iters);
+      assert(CUBLAS_STATUS_SUCCESS == cublasDnrm2(handle, cols_A, gpu_x_c, 1, norm_x_n));
     }
     gassert(cudaEventRecord(start));
-    assert(CUBLAS_STATUS_SUCCESS == cublasIdamax(handle, cols_A, (const double*)gpu_x_e, 1, max_err_incx));
+    //assert(CUBLAS_STATUS_SUCCESS == cublasIdamax(handle, cols_A, (const double*)gpu_x_e, 1, max_err_incx));
+    assert(CUBLAS_STATUS_SUCCESS == cublasDnrm2(handle, cols_A, gpu_x_e, 1, max_err));
     gassert(cudaEventRecord(stop));
     gassert(cudaEventSynchronize(stop));
     print_telapsed(start, stop, "cublas");
-    gassert(cudaMemcpy(max_err, gpu_x_e + (*max_err_incx - 1), double_size, cudaMemcpyDeviceToHost));
+    //    gassert(cudaMemcpy(max_err, gpu_x_e + (*max_err_incx - 1), double_size, cudaMemcpyDeviceToHost));
+    err = *max_err / *norm_x_n;
+    //    cout << "Err: "  << err << endl;
     count++;
-
-#ifdef DEBUG
-    gassert(cudaMemcpy(x_e, gpu_x_e, cols_A*double_size, cudaMemcpyDeviceToHost));
-    cout << string(50, 'E') << endl;
-    print_vector(x_e, rows_A, 1);
-    cout << "Max Err: " << *max_err << endl;
-#endif //DEBUG
   }
 
-  if (*max_err < tol) {
+  if (err < tol) {
     cout << "\njacobi_success = yes" << endl;
     cout << "\njacobi_iters = " << count << endl;
     if ((count % 2) == 0) {
@@ -179,7 +177,9 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
+    //cout << "Jacobi" << endl;
     //print_vector(x_c, rows_A, 1);
+    //cout << "--------------------" << endl;
     double jacobi_err[rows_A];
     vdSub(rows_A, x_ptr, x_c, jacobi_err);
     double jacobi_norm = cblas_dnrm2(rows_A, jacobi_err, 1);
@@ -189,7 +189,7 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
 
   } else {
     cout << "\njacobi_success = no" << endl;
-    cout << "\njacobi_err = " << *max_err << endl;
+    cout << "\njacobi_err = " << err << endl;
   }
 
   gassert(cudaEventDestroy(start));

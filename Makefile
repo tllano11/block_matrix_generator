@@ -4,7 +4,7 @@ CUDAFLAGS = -lcublas -lcudart -L/opt/cuda/lib64 -I/opt/cuda/include \
 -I/opt/include/ ${LAPACK_INCLUDE} -lmkl_intel_lp64 -lmkl_sequential \
 -lmkl_core -lpthread -lm
 LDFLAGS = -I./SLAE_Solver -I./src/
-NVCCFLAGS = -lineinfo -x cu -Wno-deprecated-gpu-targets -std=c++11 \
+NVCCFLAGS = --ftz=false --prec-div=true --prec-sqrt=true --fmad=false -arch=sm_30 -DDOUBLE_PREC -DVALIDATE -lineinfo -x cu -Wno-deprecated-gpu-targets -std=c++11 \
 -Xcompiler -fPIC
 NVCC = nvcc
 DEBUG = -g -DDEBUG

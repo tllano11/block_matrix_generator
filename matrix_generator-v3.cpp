@@ -15,6 +15,9 @@
 #include <Eigen/Dense>
 #include <Eigen/IterativeLinearSolvers>
 #include <chrono>
+#include "mkl.h"
+#include "mkl_lapacke.h"
+#include <algorithm>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -164,7 +167,7 @@ void solve_bicgstab(double tol){
     //cout << "\nestimated error: " << solver.error() << endl;
     double relative_error = (x_real - x).norm() / x_real.norm();
     cout << "\neigen_rel_err = " << relative_error << endl;
-    //cout << "Eigen solution: " << x << endl;
+    cout << "Eigen solution: " << endl << x << endl;
   }else{
     cout << "\neigen_success = no" << endl;
     cout << "\neigen_err = " << solver.error() << endl;
@@ -173,6 +176,42 @@ void solve_bicgstab(double tol){
   A.resize(0,0);
   x.resize(0,0);
   b.resize(0,0);
+}
+
+void jacobi_cpu(double* x_c, double* x_n, double* x_e){
+  for(int idx = 0; idx < cols_A; ++idx){
+    //    if(x_e[idx] == 0) continue;
+
+    double sigma = 0.0;
+    //Indicates which row must be computed by the current thread.
+    int index = idx * cols_A;
+    for (int j = 0; j < cols_A; ++j) {
+      //Ensures not to use a diagonal value when computing.
+      if (idx != j) {
+	sigma += A_ptr[index + j] * x_c[j];
+      }
+    }
+
+    x_n[idx] = (b_ptr[idx]- sigma) / A_ptr[index + idx];
+    //printf("Sigma [%i]: %f\n", current_row, sigma);
+  }
+}
+
+double get_error(double* x_c, double* x_n, double* x_e){
+  //double x_temp[cols_A] = {};
+  //int index;
+  double error, norm_x_e, norm_x_n;
+  vdSub(cols_A, x_n, x_c, x_e);
+  //  print_data(x_e, rows_A, 1);
+  //cout << "*****************************" << endl;
+  //vdAbs(cols_A, x_temp, x_e);
+  //index = cblas_idamax(cols_A, x_e, 1);
+  norm_x_e = cblas_dnrm2(cols_A, x_e, 1);
+  norm_x_n = cblas_dnrm2(cols_A, x_n, 1);
+  error = norm_x_e / norm_x_n;
+  //  return abs(x_e[index]);
+  return error;
+
 }
 
 int main(int argc, char** argv){
@@ -254,11 +293,44 @@ int main(int argc, char** argv){
   print_data(b_ptr, vector_size, 1);
 #endif //DEBUG
   //print_data(A_ptr, rows_A, cols_A);
-  //print_data(x_ptr, vector_size, 1);
+  //print_data(b_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
+  //print_data(x_ptr, vector_size, 1);
   //solve_eigen();
-  solve_bicgstab(tol);
-  solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+  //solve_bicgstab(tol);
+  //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
+
+  // double x_n[cols_A] = {};
+  // double x_c[cols_A] = {};
+  // double x_e[cols_A] = {};
+  // fill_n(x_e, cols_A, 1);
+  // int count = 0;
+  // double err = tol + 1;
+  // while ((err > tol) && (count < niter)){
+  //   if ((count % 2) == 0){
+  //     jacobi_cpu(x_c, x_n, x_e);
+  //     err = get_error(x_c, x_n, x_e);
+  //     //      print_data(x_n, cols_A, 1);
+  //   }else{
+  //     jacobi_cpu(x_n, x_c, x_e);
+  //     err = get_error(x_n, x_c, x_e);
+  //     //print_data(x_c, cols_A, 1);
+  //   }
+  //   cout << "Iters CPU: " << count << endl;
+  //   cout << "Error CPU: " << err << endl;
+  //   count++;
+  // }
+
+  // if(err < tol){
+  //   cout << "YEEEEIIII" << endl;
+  //   if ((count % 2) == 0){
+  //     //      print_data(x_n, cols_A, 1);
+  //   }else{
+  //     //      print_data(x_c, cols_A, 1);
+  //   }
+  // }else{
+  //   cout << ":(" << endl;
+  // }
 
   delete A_ptr;
   delete b_ptr;
