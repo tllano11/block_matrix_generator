@@ -152,10 +152,18 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     //cout << "Iter: " << count << endl;
     if ((count % 2) == 0) {
       launch_jacobi(A, gpu_A, gpu_b, gpu_x_c, gpu_x_n , gpu_x_e, rows_gpu, total_iters);
+      gassert(cudaEventRecord(start));
       assert(CUBLAS_STATUS_SUCCESS == cublasDnrm2(handle, cols_A, gpu_x_n, 1, norm_x_n));
+      gassert(cudaEventRecord(stop));
+      gassert(cudaEventSynchronize(stop));
+      print_telapsed(start, stop, "cublas");
     } else {
       launch_jacobi(A, gpu_A, gpu_b, gpu_x_n, gpu_x_c, gpu_x_e, rows_gpu, total_iters);
+      gassert(cudaEventRecord(start));
       assert(CUBLAS_STATUS_SUCCESS == cublasDnrm2(handle, cols_A, gpu_x_c, 1, norm_x_n));
+      gassert(cudaEventRecord(stop));
+      gassert(cudaEventSynchronize(stop));
+      print_telapsed(start, stop, "cublas");
     }
     gassert(cudaEventRecord(start));
     //assert(CUBLAS_STATUS_SUCCESS == cublasIdamax(handle, cols_A, (const double*)gpu_x_e, 1, max_err_incx));
