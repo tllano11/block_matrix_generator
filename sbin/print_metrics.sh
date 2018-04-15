@@ -4,7 +4,7 @@ declare -r dir=$1
 declare -r n=$2
 declare -r odir=$1/dat
 declare -r subdir=$dir/$n
-declare -r num_runnings=10
+declare -r num_runnings=$3
 
 function get_jacobi_metrics {
   jacobi_succeed=$(grep -R "jacobi_success = yes" $subdir | wc -l)
@@ -31,7 +31,7 @@ function get_jacobi_metrics {
     echo $n $jacobi_iters_avg >> $odir/jacobi_iters.dat
   fi
 
-  if (( $jacobi_succeed < 10 )); then
+  if (( $jacobi_succeed < $num_runnings )); then
     files=($(grep -R -l "jacobi_success = no" $subdir))
     jacobi_err=$(awk -v n="$jacobi_fails" \
                      '/jacobi_err/ {sum+=$3} END {print sum/n}' \

@@ -2,10 +2,11 @@
 
 declare -r exe="../matrix_generator"
 declare -r m_exe="./print_metrics.sh"
-declare -r delta="1"
-declare -r threads="8"
-declare -r relaxation="1"
-declare -r iters="100"
+declare -r delta=1
+declare -r threads=8
+declare -r relaxation=1
+declare -r runnings=10
+declare -r iters=100
 declare -r error="1e-13"
 declare -a sizes=( "2000" "4000" "6000" "8000"
                    "10000" "12000" "14000" "16000"
@@ -20,12 +21,12 @@ function main {
   mkdir -p $wdir/dat
   for n in ${sizes[@]}; do
     mkdir -p $wdir/$n
-    for i in {1..10}; do
+    for((i = 1; i<=$runnings; i++)); do
       $exe -n $n -d $delta -t $threads -r $relaxation -i $iters -e $error \
-           > $wdir/$n/out_$i.log
+	   > $wdir/$n/out_$i.log
       sleep 1
     done
-    $m_exe $wdir $n
+    $m_exe $wdir $n $runnings
   done
 }
 
