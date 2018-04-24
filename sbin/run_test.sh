@@ -6,8 +6,8 @@ declare -r delta=1
 declare -r threads=8
 declare -r relaxation=1
 declare -r runnings=10
-declare -r iters=100
-declare -r error="1e-13"
+declare -r iters=10
+declare -r error="1e-15"
 declare -a sizes=( "2000" "4000" "6000" "8000"
                    "10000" "12000" "14000" "16000"
                    "18000" "20000" "22000" "24000"

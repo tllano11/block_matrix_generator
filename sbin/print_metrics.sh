@@ -110,8 +110,8 @@ function get_eigen_metrics {
 
 function main {
   get_jacobi_metrics
-  get_mkl_metrics
-  get_eigen_metrics
+#  get_mkl_metrics
+#  get_eigen_metrics
 }
 
 main

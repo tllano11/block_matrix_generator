@@ -18,6 +18,7 @@
 #include "mkl.h"
 #include "mkl_lapacke.h"
 #include <algorithm>
+#include <iomanip>
 
 #define ERROR 1
 #define SUCCESS 0
@@ -35,7 +36,7 @@ condition_variable cv;
 void print_data(double* vector, int rows, int cols) {
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j){
-      cerr << vector[i * cols + j] << " ";
+      cerr << fixed << setprecision(16) << vector[i * cols + j] << " ";
     }
     cerr << endl;
   }
@@ -44,7 +45,7 @@ void print_data(double* vector, int rows, int cols) {
 /**
  * Fills A matrix with random numbers, at the end the matrix will be diagonally dominant.
  **/
-void generate_A(double* A_submatrix, int rows_per_thread, int inital_row) {
+void generate_A(double* A_submatrix, int rows_per_thread, int initial_row) {
   random_device rd;
   mt19937_64 mt(rd());
   uniform_real_distribution<double> urd(-cols_A, cols_A);
@@ -57,9 +58,9 @@ void generate_A(double* A_submatrix, int rows_per_thread, int inital_row) {
       accum += abs(A_submatrix[i * cols_A + j]);
     }
     // The value of the diagonal will be the sum of the elements of the row plus the delta given by the user.
-    double* diagonal = &A_submatrix[i * cols_A + inital_row];
+    double* diagonal = &A_submatrix[i * cols_A + initial_row];
     *diagonal = accum - *diagonal + delta;
-    inital_row++;
+    initial_row++;
   }
 }
 
@@ -295,7 +296,7 @@ int main(int argc, char** argv){
   //print_data(A_ptr, rows_A, cols_A);
   //print_data(b_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
-  //print_data(x_ptr, vector_size, 1);
+  print_data(x_ptr, vector_size, 1);
   //solve_eigen();
   //solve_bicgstab(tol);
   //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
