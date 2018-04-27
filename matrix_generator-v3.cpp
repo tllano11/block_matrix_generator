@@ -270,7 +270,7 @@ int main(int argc, char** argv){
     cerr << "Not enough arguments" << endl;
     return 1;
   }else{
-    while ((opt = getopt(argc, argv, "n:d:t:r:i:e:h")) != EOF) {
+    while ((opt = getopt(argc, argv, "n:t:i:e:h")) != EOF) {
       switch (opt) {
       case 'n':
         cols_A = stoi(optarg);
@@ -281,17 +281,11 @@ int main(int argc, char** argv){
         number_threads = stoi(optarg);
         thread_counter = stoi(optarg);
         break;
-      case 'r':
-        rel = stod(optarg);
-        break;
       case 'i':
         niter = stoi(optarg);
         break;
       case 'e':
         tol = stod(optarg);
-        break;
-      case 'd':
-        delta = stof(optarg);
         break;
       case 'h':
         cout << "\nUsage:\n"
@@ -343,7 +337,7 @@ int main(int argc, char** argv){
   //print_data(b_ptr, vector_size, 1);
   //print_data(x_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
-  launch_jacobi_cpu(tol, niter);
+  //launch_jacobi_cpu(tol, niter);
   //solve_bicgstab(tol);
   //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
 
