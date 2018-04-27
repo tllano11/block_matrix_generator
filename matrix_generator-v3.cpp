@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <random>
 #include <limits>
@@ -48,18 +49,25 @@ void print_data(double* vector, int rows, int cols) {
 void generate_A(double* A_submatrix, int rows_per_thread, int initial_row) {
   random_device rd;
   mt19937_64 mt(rd());
-  uniform_real_distribution<double> urd(-cols_A, cols_A);
+  uniform_real_distribution<double> urd(-5000, 5000);
+  uniform_int_distribution<int> ird(1, 1000);
   double accum;
 
   for (int i = 0; i < rows_per_thread; ++i) {
     accum = 0;
-    for (int j = 0; j < cols_A; ++j) {
+    for (int j = 0; j < initial_row; ++j) {
+      A_submatrix[i * cols_A + j] = urd(mt);
+      accum += abs(A_submatrix[i * cols_A + j]);
+    }
+
+    for (int j = initial_row + 1; j < cols_A; ++j) {
       A_submatrix[i * cols_A + j] = urd(mt);
       accum += abs(A_submatrix[i * cols_A + j]);
     }
     // The value of the diagonal will be the sum of the elements of the row plus the delta given by the user.
     double* diagonal = &A_submatrix[i * cols_A + initial_row];
-    *diagonal = accum - *diagonal + delta;
+    int delta = ird(mt);
+    *diagonal = (accum + delta) * pow(-1, ird(mt));
     initial_row++;
   }
 }
@@ -116,35 +124,35 @@ void generate_system(int rows_per_thread, int number_threads, int thread_id){
   generate_b(b_ptr_local, A_ptr_local, rows_per_thread);
 }
 
-void solve_eigen(){
+// void solve_eigen(){
 
-  MatrixXd eigenA, eigenb, eigenX, eigenRes;
-  //cout << "Eigen A:" << endl;
-  eigenA = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
-  eigenX = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
-  eigenb = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);
-  auto start = high_resolution_clock::now();
-  eigenRes = eigenA.colPivHouseholderQr().solve(eigenb);
-  auto stop = high_resolution_clock::now();
-  cerr << "\neigen_result_vector\n" << endl;
-  cerr << eigenRes << endl;
-  auto duration = duration_cast<milliseconds>(stop - start);
-  cout << "\neigen_time = "
-       << duration.count() << endl;
+//   MatrixXd eigenA, eigenb, eigenX, eigenRes;
+//   //cout << "Eigen A:" << endl;
+//   eigenA = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
+//   eigenX = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(x_ptr, rows_A, 1);
+//   eigenb = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(b_ptr, rows_A, 1);
+//   auto start = high_resolution_clock::now();
+//   eigenRes = eigenA.colPivHouseholderQr().solve(eigenb);
+//   auto stop = high_resolution_clock::now();
+//   cerr << "\neigen_result_vector\n" << endl;
+//   cerr << eigenRes << endl;
+//   auto duration = duration_cast<milliseconds>(stop - start);
+//   cout << "\neigen_time = "
+//        << duration.count() << endl;
 
-  //eigenDiff = eigenX - eigenRes;
-  //eigenDiff = eigenDiff.array().abs();
-  //cout << "Max absolute X error: " << eigenDiff.maxCoeff() << endl;
-  double relative_error = (eigenX - eigenRes).norm() / eigenX.norm();
-  cout << "\neigen_err = " << relative_error << endl;
+//   //eigenDiff = eigenX - eigenRes;
+//   //eigenDiff = eigenDiff.array().abs();
+//   //cout << "Max absolute X error: " << eigenDiff.maxCoeff() << endl;
+//   double relative_error = (eigenX - eigenRes).norm() / eigenX.norm();
+//   cout << "\neigen_err = " << relative_error << endl;
 
-  eigenA.resize(0,0);
-  eigenb.resize(0,0);
-  eigenX.resize(0,0);
-  // eigenDiff.resize(0,0);
-  eigenRes.resize(0,0);
+//   eigenA.resize(0,0);
+//   eigenb.resize(0,0);
+//   eigenX.resize(0,0);
+//   // eigenDiff.resize(0,0);
+//   eigenRes.resize(0,0);
 
-}
+// }
 
 void solve_bicgstab(double tol){
   MatrixXd A = Map<Matrix<double,Dynamic,Dynamic,RowMajor>>(A_ptr, rows_A, rows_A);
@@ -198,6 +206,7 @@ void jacobi_cpu(double* x_c, double* x_n, double* x_e){
   }
 }
 
+
 double get_error(double* x_c, double* x_n, double* x_e){
   //double x_temp[cols_A] = {};
   //int index;
@@ -210,9 +219,46 @@ double get_error(double* x_c, double* x_n, double* x_e){
   norm_x_e = cblas_dnrm2(cols_A, x_e, 1);
   norm_x_n = cblas_dnrm2(cols_A, x_n, 1);
   error = norm_x_e / norm_x_n;
-  //  return abs(x_e[index]);
+
   return error;
 
+}
+
+void launch_jacobi_cpu(double tol, int niter){
+  double x_n[cols_A] = {};
+  double x_c[cols_A] = {};
+  double x_e[cols_A] = {};
+  //  fill_n(x_e, cols_A, 1);
+  int count = 0;
+  double err = tol + 1;
+  auto start = high_resolution_clock::now();
+  while ((err > tol) && (count < niter)){
+    if ((count % 2) == 0){
+      jacobi_cpu(x_c, x_n, x_e);
+      err = get_error(x_c, x_n, x_e);
+      //      print_data(x_n, cols_A, 1);
+    }else{
+      jacobi_cpu(x_n, x_c, x_e);
+      err = get_error(x_n, x_c, x_e);
+      //print_data(x_c, cols_A, 1);
+    }
+    count++;
+  }
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<milliseconds>(stop - start);
+
+  if(err < tol){
+    cout << "\nJacobi CPU" << endl;
+    if ((count % 2) == 0){
+      //print_data(x_n, cols_A, 1);
+    }else{
+      //print_data(x_c, cols_A, 1);
+    }
+    cout << "jacobi_cpu_success = yes" << endl;
+    cout << "jacobi_cpu_time = " << duration.count() << " ms" << endl;
+  }else{
+    cout << "jacobi_cpu_success = no" << endl;
+  }
 }
 
 int main(int argc, char** argv){
@@ -295,43 +341,11 @@ int main(int argc, char** argv){
 #endif //DEBUG
   //print_data(A_ptr, rows_A, cols_A);
   //print_data(b_ptr, vector_size, 1);
+  //print_data(x_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
-  print_data(x_ptr, vector_size, 1);
-  //solve_eigen();
+  launch_jacobi_cpu(tol, niter);
   //solve_bicgstab(tol);
   //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
-
-  // double x_n[cols_A] = {};
-  // double x_c[cols_A] = {};
-  // double x_e[cols_A] = {};
-  // fill_n(x_e, cols_A, 1);
-  // int count = 0;
-  // double err = tol + 1;
-  // while ((err > tol) && (count < niter)){
-  //   if ((count % 2) == 0){
-  //     jacobi_cpu(x_c, x_n, x_e);
-  //     err = get_error(x_c, x_n, x_e);
-  //     //      print_data(x_n, cols_A, 1);
-  //   }else{
-  //     jacobi_cpu(x_n, x_c, x_e);
-  //     err = get_error(x_n, x_c, x_e);
-  //     //print_data(x_c, cols_A, 1);
-  //   }
-  //   cout << "Iters CPU: " << count << endl;
-  //   cout << "Error CPU: " << err << endl;
-  //   count++;
-  // }
-
-  // if(err < tol){
-  //   cout << "YEEEEIIII" << endl;
-  //   if ((count % 2) == 0){
-  //     //      print_data(x_n, cols_A, 1);
-  //   }else{
-  //     //      print_data(x_c, cols_A, 1);
-  //   }
-  // }else{
-  //   cout << ":(" << endl;
-  // }
 
   delete A_ptr;
   delete b_ptr;

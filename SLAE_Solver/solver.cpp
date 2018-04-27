@@ -179,6 +179,7 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
   }
 
   if (err < tol) {
+    cout << "Jacobi GPU" << endl;
     cout << "\njacobi_success = yes" << endl;
     cout << "\njacobi_iters = " << count << endl;
     if ((count % 2) == 0) {
@@ -186,8 +187,7 @@ void solve(double* A, double* b, double* x_ptr, int niter, double tol){
     } else {
       gassert(cudaMemcpy(x_c, gpu_x_c, cols_A*double_size, cudaMemcpyDeviceToHost));
     }
-    cout << "Jacobi" << endl;
-    print_vector(x_c, rows_A, 1);
+    //print_vector(x_c, rows_A, 1);
     //cout << "--------------------" << endl;
     double jacobi_err[rows_A];
     vdSub(rows_A, x_ptr, x_c, jacobi_err);
