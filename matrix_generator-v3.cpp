@@ -1,4 +1,4 @@
-
+#include <omp.h>
 #include <iostream>
 #include <random>
 #include <limits>
@@ -206,6 +206,24 @@ void jacobi_cpu(double* x_c, double* x_n, double* x_e){
   }
 }
 
+void jacobi_cpu_parallel(double* x_c, double* x_n, double* x_e){
+  #pragma omp parallel for schedule(dynamic)
+  for(int idx = 0; idx < cols_A; ++idx){
+    //    if(x_e[idx] == 0) continue;
+    double sigma = 0.0;
+    //Indicates which row must be computed by the current thread.
+    int index = idx * cols_A;
+    for (int j = 0; j < cols_A; ++j) {
+      //Ensures not to use a diagonal value when computing.
+      if (idx != j) {
+	sigma += A_ptr[index + j] * x_c[j];
+      }
+    }
+
+    x_n[idx] = (b_ptr[idx]- sigma) / A_ptr[index + idx];
+    //printf("Sigma [%i]: %f\n", current_row, sigma);
+  }
+}
 
 double get_error(double* x_c, double* x_n, double* x_e){
   //double x_temp[cols_A] = {};
@@ -258,6 +276,43 @@ void launch_jacobi_cpu(double tol, int niter){
     cout << "jacobi_cpu_time = " << duration.count() << " ms" << endl;
   }else{
     cout << "jacobi_cpu_success = no" << endl;
+  }
+}
+
+void launch_jacobi_cpu_parallel(double tol, int niter){
+  double x_n[cols_A] = {};
+  double x_c[cols_A] = {};
+  double x_e[cols_A] = {};
+  //  fill_n(x_e, cols_A, 1);
+  int count = 0;
+  double err = tol + 1;
+  auto start = high_resolution_clock::now();
+  while ((err > tol) && (count < niter)){
+    if ((count % 2) == 0){
+      jacobi_cpu_parallel(x_c, x_n, x_e);
+      err = get_error(x_c, x_n, x_e);
+      //      print_data(x_n, cols_A, 1);
+    } else {
+      jacobi_cpu_parallel(x_n, x_c, x_e);
+      err = get_error(x_n, x_c, x_e);
+      //print_data(x_c, cols_A, 1);
+    }
+    ++count;
+  }
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<milliseconds>(stop - start);
+
+  if(err < tol){
+    cout << "\nJacobi CPU Parallel" << endl;
+    if ((count % 2) == 0){
+      //print_data(x_n, cols_A, 1);
+    }else{
+      //print_data(x_c, cols_A, 1);
+    }
+    cout << "jacobi_cpu_parallel_success = yes" << endl;
+    cout << "jacobi_cpu_parallel_time = " << duration.count() << " ms" << endl;
+  }else{
+    cout << "jacobi_cpu_parallel_success = no" << endl;
   }
 }
 
@@ -337,6 +392,7 @@ int main(int argc, char** argv){
   //print_data(b_ptr, vector_size, 1);
   //print_data(x_ptr, vector_size, 1);
   solve(A_ptr, b_ptr, x_ptr, niter, tol);
+  //launch_jacobi_cpu_parallel(tol, niter);
   //launch_jacobi_cpu(tol, niter);
   //solve_bicgstab(tol);
   //solve_mkl(A_ptr, b_ptr, rows_A, x_ptr);
