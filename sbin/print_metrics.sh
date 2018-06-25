@@ -16,28 +16,28 @@ function get_jacobi_metrics {
                           '/run_jacobi/ || /compute_error/ || /cublas/ {sum+=$5} END {print sum/n}' \
                           ${files[@]})
 
-#    jacobi_rel_err_avg=$(awk -v n="$jacobi_succeed" \
-#                             '/jacobi_rel_err/ {sum+=$3} END {print sum/n}' \
-#                             ${files[@]})
+   jacobi_rel_err_avg=$(awk -v n="$jacobi_succeed" \
+                            '/jacobi_rel_err/ {sum+=$3} END {print sum/n}' \
+                            ${files[@]})
 
-#    jacobi_iters_avg=$(awk -v n="$jacobi_succeed" \
-#                           '/jacobi_iters/ {sum+=$3} END {print sum/n}' \
-#                           ${files[@]})
+   jacobi_iters_avg=$(awk -v n="$jacobi_succeed" \
+                          '/jacobi_iters/ {sum+=$3} END {print sum/n}' \
+                          ${files[@]})
 
     echo $n $(awk -v success=$jacobi_succeed -v total=$num_runnings \
                   'BEGIN {print success/total}') >> $odir/jacobi_succeed.dat
     echo $n $jacobi_time_avg >> $odir/jacobi_time.dat
-#    echo $n $jacobi_rel_err_avg >> $odir/jacobi_rel_err.dat
-#    echo $n $jacobi_iters_avg >> $odir/jacobi_iters.dat
+    echo $n $jacobi_rel_err_avg >> $odir/jacobi_rel_err.dat
+    echo $n $jacobi_iters_avg >> $odir/jacobi_iters.dat
   fi
 
-#  if (( $jacobi_succeed < $num_runnings )); then
-#    files=($(grep -R -l "jacobi_success = no" $subdir))
-#    jacobi_err=$(awk -v n="$jacobi_fails" \
-#                     '/jacobi_err/ {sum+=$3} END {print sum/n}' \
-#                     ${files[@]})
-#    echo $n $jacobi_err >> $odir/jacobi_failed_err.dat
-#  fi
+  if (( $jacobi_succeed < $num_runnings )); then
+    files=($(grep -R -l "jacobi_success = no" $subdir))
+    jacobi_err=$(awk -v n="$jacobi_fails" \
+                     '/jacobi_err/ {sum+=$3} END {print sum/n}' \
+                     ${files[@]})
+    echo $n $jacobi_err >> $odir/jacobi_failed_err.dat
+  fi
 }
 
 function get_jacobi_cpu_metrics {
@@ -61,6 +61,29 @@ function get_jacobi_cpu_metrics {
 #                     ${files[@]})
 #    echo $n $jacobi_err >> $odir/jacobi_cpu_failed_err.dat
 #  fi
+}
+
+function get_jacobi_cpu_parallel_metrics {
+  jacobi_succeed=$(grep -R "jacobi_cpu_parallel_success = yes" $subdir | wc -l)
+  jacobi_fails=$((num_runnings - jacobi_succeed))
+
+  if (( $jacobi_succeed > 0 )); then
+    files=($(grep -R -l "jacobi_cpu_parallel_success = yes" $subdir))
+    jacobi_time_avg=$(awk -v n="$jacobi_succeed" \
+                          '/jacobi_cpu_parallel_time/ {sum+=$3} END {print sum/n}' ${files[@]})
+
+    echo $n $(awk -v success=$jacobi_succeed -v total=$num_runnings \
+                  'BEGIN {print success/total}') >> $odir/jacobi_cpu_parallel_succeed.dat
+    echo $n $jacobi_time_avg >> $odir/jacobi_cpu_parallel_time.dat
+  fi
+
+  if (( $jacobi_succeed < $num_runnings )); then
+    files=($(grep -R -l "jacobi_cpu_parallel_success = no" $subdir))
+    jacobi_err=$(awk -v n="$jacobi_fails" \
+                     '/jacobi_cpu_parallel_err/ {sum+=$3} END {print sum/n}' \
+                     ${files[@]})
+    echo $n $jacobi_err >> $odir/jacobi_cpu_parallel_failed_err.dat
+  fi
 }
 
 function get_mkl_metrics {
@@ -133,7 +156,8 @@ function get_eigen_metrics {
 
 function main {
   get_jacobi_metrics
-  get_jacobi_cpu_metrics
+#  get_jacobi_cpu_metrics
+#  get_jacobi_cpu_parallel_metrics
 #  get_mkl_metrics
 #  get_eigen_metrics
 }
